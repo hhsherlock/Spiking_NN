@@ -38,7 +38,7 @@ class HHModel:
         self.UpdateGateTimeConstants(startingVoltage)
         self.m.setInfiniteState()
         self.n.setInfiniteState()
-        self.h.setInfiniteState() # ah a bug haha
+        self.n.setInfiniteState() # ah a bug haha
 
     def UpdateGateTimeConstants(self, Vm):
         """Update time constants of all gates based on the given Vm"""
