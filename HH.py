@@ -39,7 +39,8 @@ class Channel():
         self.Vm = Vm
 
     def update_gP(self):
-        raise NotImplementedError("This method should be implemented by subclasses")
+        # set the gP to 1 if it is set anotherwise
+        self.gP = 1
 
     def current(self):
         I = self.gMax * self.gP *(self.Vm - self.rE)
@@ -49,6 +50,7 @@ class Channel():
 
 class VoltageGatedChannel(Channel):
     def update_gP(self, m, n, h, deltaTms):
+        print("haha", self.Vm)
         # update the hyperparameters of the states: alpha and beta
         m.alpha = .1*((25-self.Vm) / (np.exp((25-self.Vm)/10)-1))
         m.beta = 4*np.exp(-self.Vm/18)
@@ -68,6 +70,7 @@ class VoltageGatedChannel(Channel):
 class Voltage_Sodium(VoltageGatedChannel):
     def update_gP(self, m, n, h, deltaTms):
         super().update_gP(m, n, h, deltaTms)
+        print(m.state)
         self.gP = np.power(m.state, 3) * h.state
 
 class Voltage_Potassium(VoltageGatedChannel):
@@ -76,21 +79,43 @@ class Voltage_Potassium(VoltageGatedChannel):
         self.gP = np.power(n.state, 4)
 
 class Voltage_Leak(VoltageGatedChannel):
-    def update_gP(self, m, n, h, deltaTms):
-        self.gP = 1
+    pass
+
+
 
 # class LigandGatedChannel(Channel):
 #     def 
 
-class Model:
+class Neuron:
+
+    def __init__(self, stim_current, deltaTms):
+        self.stim_current = stim_current
+        self.deltaTms = deltaTms
+    
     # gate states for voltage gated channels
-    m_sodium = Gate(0,0,0)
-    n_sodium = Gate(0,0,0)
-    h_sodium = Gate(0,0,0)
+    # they share the same m,n,h
+    m = Gate(0,0,0)
+    n = Gate(0,0,0)
+    h = Gate(0,0,0)
 
     deltaTms = 0.05
+
     sodium_channel = Voltage_Sodium(120, 1, 115, 0)
-    sodium_channel.update_gP(m_sodium, n_sodium, h_sodium, deltaTms)
-    sodium_channel.current()
+    print(sodium_channel.Vm)
+    sodium_channel.update_gP(m, n, h, deltaTms)
+    INa = sodium_channel.current()
+
+    potassium_channel = Voltage_Potassium(26, 1, -12, 0)
+    potassium_channel.update_gP(m, n, h, deltaTms)
+    IK = potassium_channel.current()
+
+    leaky_channel = Voltage_Leak(0.3, 1, 10.6, 0)
+    Ileak = leaky_channel.current()
+
+    # Isum = 20 - INa - IK - Ileak
+    # Vm += deltaTms * Isum / 1
+
+
+
 
 

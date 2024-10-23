@@ -53,8 +53,11 @@ class HHModel:
         """calculate channel currents using the latest gate time constants"""
         INa = np.power(self.m.state, 3) * self.gNa * \
             self.h.state*(self.Vm-self.ENa)
+        print("Na" , INa)
         IK = np.power(self.n.state, 4) * self.gK * (self.Vm-self.EK)
+        print("K", IK)
         IKleak = self.gKleak * (self.Vm-self.EKleak)
+        print("leak", IKleak)
         Isum = stimulusCurrent - INa - IK - IKleak
         self.Vm += deltaTms * Isum / self.Cm
 
