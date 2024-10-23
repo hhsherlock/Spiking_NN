@@ -86,34 +86,32 @@ class Voltage_Leak(VoltageGatedChannel):
 # class LigandGatedChannel(Channel):
 #     def 
 
-class Neuron:
+# class Neuron:
 
-    def __init__(self, stim_current, deltaTms):
-        self.stim_current = stim_current
-        self.deltaTms = deltaTms
+#     def __init__(self, stim_current, deltaTms):
+#         self.stim_current = stim_current
+#         self.deltaTms = deltaTms
     
-    # gate states for voltage gated channels
-    # they share the same m,n,h
-    m = Gate(0,0,0)
-    n = Gate(0,0,0)
-    h = Gate(0,0,0)
+#     # gate states for voltage gated channels
+#     # they share the same m,n,h
+#     m = Gate(0,0,0)
+#     n = Gate(0,0,0)
+#     h = Gate(0,0,0)
 
-    deltaTms = 0.05
+#     sodium_channel = Voltage_Sodium(120, 1, 115, 0)
+#     print(sodium_channel.Vm)
+#     sodium_channel.update_gP(m, n, h, self.deltaTms)
+#     INa = sodium_channel.current()
 
-    sodium_channel = Voltage_Sodium(120, 1, 115, 0)
-    print(sodium_channel.Vm)
-    sodium_channel.update_gP(m, n, h, deltaTms)
-    INa = sodium_channel.current()
+#     potassium_channel = Voltage_Potassium(26, 1, -12, 0)
+#     potassium_channel.update_gP(m, n, h, deltaTms)
+#     IK = potassium_channel.current()
 
-    potassium_channel = Voltage_Potassium(26, 1, -12, 0)
-    potassium_channel.update_gP(m, n, h, deltaTms)
-    IK = potassium_channel.current()
+#     leaky_channel = Voltage_Leak(0.3, 1, 10.6, 0)
+#     Ileak = leaky_channel.current()
 
-    leaky_channel = Voltage_Leak(0.3, 1, 10.6, 0)
-    Ileak = leaky_channel.current()
-
-    # Isum = 20 - INa - IK - Ileak
-    # Vm += deltaTms * Isum / 1
+#     # Isum = 20 - INa - IK - Ileak
+#     # Vm += deltaTms * Isum / 1
 
 
 
