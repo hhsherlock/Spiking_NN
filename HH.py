@@ -24,8 +24,10 @@ class Gate():
         betaState = self.beta * self.state
         self.state += deltaTms * (alphaState - betaState)
 
-    def setInfiniteState(self):
-        self.state = self.alpha / (self.alpha + self.beta)
+    # def update_alpha_beta(self):
+
+    # def setInfiniteState(self):
+    #     self.state = self.alpha / (self.alpha + self.beta)
 
 
 
@@ -46,7 +48,8 @@ class Channel():
 
 
 class VoltageGatedChannel(Channel):
-    def update_gP(self, m, n, h):
+    def update_gP(self, m, n, h, deltaTms):
+        # update the hyperparameters of the states: alpha and beta
         m.alpha = .1*((25-self.Vm) / (np.exp((25-self.Vm)/10)-1))
         m.beta = 4*np.exp(-self.Vm/18)
         n.alpha = .01 * ((10-self.Vm) / (np.exp((10-self.Vm)/10)-1))
@@ -54,24 +57,40 @@ class VoltageGatedChannel(Channel):
         h.alpha = .07*np.exp(-self.Vm/20)
         h.beta = 1/(np.exp((30-self.Vm)/10)+1)
 
-        m.setInfiniteState()
-        n.setInfiniteState()
-        h.setInfiniteState()
+        
+        m.update(deltaTms)
+        n.update(deltaTms)
+        h.update(deltaTms)
 
         # then implement the gP for each type of channel
 
 
 class Voltage_Sodium(VoltageGatedChannel):
-    def update_gP(self, m, n, h):
-        super().update_gP(m, n, h)
+    def update_gP(self, m, n, h, deltaTms):
+        super().update_gP(m, n, h, deltaTms)
         self.gP = np.power(m.state, 3) * h.state
 
+class Voltage_Potassium(VoltageGatedChannel):
+    def update_gP(self, m, n, h, deltaTms):
+        super().update_gP(m, n, h, deltaTms)
+        self.gP = np.power(n.state, 4)
 
+class Voltage_Leak(VoltageGatedChannel):
+    def update_gP(self, m, n, h, deltaTms):
+        self.gP = 1
 
-
-
-
-
-    
 # class LigandGatedChannel(Channel):
 #     def 
+
+class Model:
+    # gate states for voltage gated channels
+    m_sodium = Gate(0,0,0)
+    n_sodium = Gate(0,0,0)
+    h_sodium = Gate(0,0,0)
+
+    deltaTms = 0.05
+    sodium_channel = Voltage_Sodium(120, 1, 115, 0)
+    sodium_channel.update_gP(m_sodium, n_sodium, h_sodium, deltaTms)
+    sodium_channel.current()
+
+
