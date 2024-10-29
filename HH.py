@@ -19,16 +19,17 @@ class Gate():
         self.beta = beta
         self.state = state
     
+    # state change is the function of time 
+    # basing on the alpha and beta
     def update(self, deltaTms):
         alphaState = self.alpha * (1-self.state)
         betaState = self.beta * self.state
         self.state += deltaTms * (alphaState - betaState)
-
+    
     # def update_alpha_beta(self):
 
     # def setInfiniteState(self):
     #     self.state = self.alpha / (self.alpha + self.beta)
-
 
 
 class Channel():
@@ -50,7 +51,7 @@ class Channel():
 
 class VoltageGatedChannel(Channel):
     def update_gP(self, m, n, h, deltaTms):
-        print("haha", self.Vm)
+
         # update the hyperparameters of the states: alpha and beta
         m.alpha = .1*((25-self.Vm) / (np.exp((25-self.Vm)/10)-1))
         m.beta = 4*np.exp(-self.Vm/18)
@@ -59,7 +60,7 @@ class VoltageGatedChannel(Channel):
         h.alpha = .07*np.exp(-self.Vm/20)
         h.beta = 1/(np.exp((30-self.Vm)/10)+1)
 
-        
+        # update the states
         m.update(deltaTms)
         n.update(deltaTms)
         h.update(deltaTms)
@@ -84,34 +85,9 @@ class Voltage_Leak(VoltageGatedChannel):
 
 
 # class LigandGatedChannel(Channel):
-#     def 
+#     def update_gP(self, deltaTms):
+#         increase_rate = -
 
-# class Neuron:
-
-#     def __init__(self, stim_current, deltaTms):
-#         self.stim_current = stim_current
-#         self.deltaTms = deltaTms
-    
-#     # gate states for voltage gated channels
-#     # they share the same m,n,h
-#     m = Gate(0,0,0)
-#     n = Gate(0,0,0)
-#     h = Gate(0,0,0)
-
-#     sodium_channel = Voltage_Sodium(120, 1, 115, 0)
-#     print(sodium_channel.Vm)
-#     sodium_channel.update_gP(m, n, h, self.deltaTms)
-#     INa = sodium_channel.current()
-
-#     potassium_channel = Voltage_Potassium(26, 1, -12, 0)
-#     potassium_channel.update_gP(m, n, h, deltaTms)
-#     IK = potassium_channel.current()
-
-#     leaky_channel = Voltage_Leak(0.3, 1, 10.6, 0)
-#     Ileak = leaky_channel.current()
-
-#     # Isum = 20 - INa - IK - Ileak
-#     # Vm += deltaTms * Isum / 1
 
 
 
