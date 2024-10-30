@@ -84,9 +84,75 @@ class Voltage_Leak(VoltageGatedChannel):
 
 
 
-# class LigandGatedChannel(Channel):
-#     def update_gP(self, deltaTms):
-#         increase_rate = -
+class LigandGatedChannel(Channel):
+
+    def __init__(self, gMax, gP, rE, Vm, params):
+        super().__init__(gMax, gP, rE, Vm)
+        self.tau_pre, self.tau_rec, self.tau_decay,\
+             self.tau_rise, self.u_se, self.w, \
+                 self.e, self.g_decay, self.g_rise, \
+                     self.past_pre, self.past_post, \
+                         self.tsp_pre, self.tsp_post, \
+                             self.learning_rate = params
+    
+    def _runge_kutta(self, f, y0, h, *arg):
+        k1 = f(y0, *arg)
+        k2 = f(y0 + h*k1/2, *arg)
+        k3 = f(y0 + h*k2/2, *arg)
+        k4 = f(y0 + h*k3, *arg)
+
+        e_next = y0 + 1/6*(k1 + 2*k2 + 2*k3 + k4)
+
+        return e_next    
+    
+    # integrate function for weight
+    def _integrate(self, past, current):
+        integrate_result = 0
+        for i in past:
+            integrate_result += np.exp(-(current-i)/self.tau_pre)
+        return integrate_result
+    
+    # w(m,n) synapse weight
+    def _w_update(self, past_pre, past_post, t_step):
+        return self.learning_rate*self._integrate(
+            past_pre, t_step)*self._integrate(past_post, t_step)
+    
+    # e(m,n) synaptic efficacy
+    def _e_update(self, e, etsp):
+        return (1-e)/self.tau_rec - self.u_se*etsp
+
+    # G decay and rise
+    def _g_decay_update(self, g_decay, w, e):
+        return -g_decay/self.tau_decay + w*e
+
+    def _g_rise_update(self, g_rise, w, e):
+        return -g_rise/self.tau_rise + w*e
+
+    def update_gP(self, t_step, deltaTms):
+            # updating e value
+        if t_step not in self.tsp_pre:
+            self.e = self._runge_kutta(self._e_update, self.e, deltaTms, 0)
+        else:
+            self.e = self._runge_kutta(self._e_update, self.e, deltaTms, self.e)
+            self.past_pre.append(t_step)
+
+        # updating w value
+        if t_step in self.tsp_post:
+            self.past_post.append(t_step)
+            self.w += self._w_update(self.past_pre, self.past_post, t_step)
+
+        # updating g_decay based on e and w
+        if t_step not in self.tsp_pre:
+            self.g_decay = self._runge_kutta(self._g_decay_update, self.g_decay, deltaTms, 0,0)
+            self.g_rise = self._runge_kutta(self._g_rise_update, self.g_rise, deltaTms, 0, 0)
+        else:
+            self.g_decay = self._runge_kutta(self._g_decay_update, self.g_decay, deltaTms, self.w, self.e)
+            self.g_rise = self._runge_kutta(self._g_rise_update, self.g_rise, deltaTms, self.w, self.e)
+
+        self.gP = self.g_rise - self.g_decay
+
+
+
 
 
 
