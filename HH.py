@@ -28,8 +28,9 @@ class Gate:
     
     # def update_alpha_beta(self):
 
-    # def setInfiniteState(self):
-    #     self.state = self.alpha / (self.alpha + self.beta)
+    def initialise(self):
+        print("this line runs")
+        self.state = self.alpha / (self.alpha + self.beta)
 
 
 class Channel:
@@ -50,20 +51,34 @@ class Channel:
 
 
 class VoltageGatedChannel(Channel):
-    def update_gP(self, m, n, h, deltaTms):
+    def __init__(self, gMax, gP, rE, Vm):
+        super().__init__(gMax, gP, rE, Vm)
+        self.m = Gate(0,0,0)
+        self.n = Gate(0,0,0)
+        self.h = Gate(0,0,0)
+        # this deltaTms should it be the same as the experiment?
+        self.update_gP(0.1)
+        self.m.initialise()
+        self.n.initialise()
+        self.h.initialise()
+        print(self.m.alpha)
+
+
+
+    def update_gP(self, deltaTms):
 
         # update the hyperparameters of the states: alpha and beta
-        m.alpha = .1*((25-self.Vm) / (np.exp((25-self.Vm)/10)-1))
-        m.beta = 4*np.exp(-self.Vm/18)
-        n.alpha = .01 * ((10-self.Vm) / (np.exp((10-self.Vm)/10)-1))
-        n.beta = .125*np.exp(-self.Vm/80)
-        h.alpha = .07*np.exp(-self.Vm/20)
-        h.beta = 1/(np.exp((30-self.Vm)/10)+1)
+        self.m.alpha = .1*((25-self.Vm) / (np.exp((25-self.Vm)/10)-1))
+        self.m.beta = 4*np.exp(-self.Vm/18)
+        self.n.alpha = .01 * ((10-self.Vm) / (np.exp((10-self.Vm)/10)-1))
+        self.n.beta = .125*np.exp(-self.Vm/80)
+        self.h.alpha = .07*np.exp(-self.Vm/20)
+        self.h.beta = 1/(np.exp((30-self.Vm)/10)+1)
 
         # update the states
-        m.update(deltaTms)
-        n.update(deltaTms)
-        h.update(deltaTms)
+        self.m.update(deltaTms)
+        self.n.update(deltaTms)
+        self.h.update(deltaTms)
 
         # then implement the gP for each type of channel
 
@@ -76,22 +91,21 @@ class Voltage_Sodium(VoltageGatedChannel):
     def __init__(self, Vm):
         super().__init__(Voltage_Sodium.gMax_Na, Voltage_Sodium.gP, Voltage_Sodium.rE_Na, Vm)
 
-    def update_gP(self, m, n, h, deltaTms):
-        super().update_gP(m, n, h, deltaTms)
-        # print(m.state)
-        self.gP = np.power(m.state, 3) * h.state
+    def update_gP(self, deltaTms):
+        super().update_gP(deltaTms)
+        self.gP = np.power(self.m.state, 3) * self.h.state
 
 class Voltage_Potassium(VoltageGatedChannel):
-    gMax_K = 26
+    gMax_K = 36
     rE_K = -12
     gP = 1
 
     def __init__(self, Vm):
         super().__init__(Voltage_Potassium.gMax_K, Voltage_Potassium.gP, Voltage_Potassium.rE_K, Vm)
     
-    def update_gP(self, m, n, h, deltaTms):
-        super().update_gP(m, n, h, deltaTms)
-        self.gP = np.power(n.state, 4)
+    def update_gP(self, deltaTms):
+        super().update_gP(deltaTms)
+        self.gP = np.power(self.n.state, 4)
 
 class Voltage_Leak(VoltageGatedChannel):
     gMax_leaky = 0.3
@@ -107,7 +121,7 @@ class Voltage_Leak(VoltageGatedChannel):
 
 class LigandGatedChannel(Channel):
 
-    def __init__(self, gMax, gP, rE, Vm, params, record_lists):
+    def __init__(self, gMax, gP, rE, Vm, params):
         super().__init__(gMax, gP, rE, Vm)
         self.tau_pre, self.tau_post, \
             self.tau_rec, self.tau_decay,\
@@ -115,7 +129,6 @@ class LigandGatedChannel(Channel):
                  self.e, self.g_decay, self.g_rise, \
                      self.past_pre, self.past_post, \
                              self.learning_rate = params
-        self.past_pre, self.past_post = record_lists
     
     #------------tool methods--------------------
     @staticmethod
@@ -125,9 +138,9 @@ class LigandGatedChannel(Channel):
         k3 = f(y0 + h*k2/2, *arg)
         k4 = f(y0 + h*k3, *arg)
 
-        e_next = y0 + 1/6*(k1 + 2*k2 + 2*k3 + k4)
+        next = y0 + 1/6*(k1 + 2*k2 + 2*k3 + k4)
 
-        return e_next    
+        return next    
     
     # integrate function for weight
     def _integrate(self, past, current, tau_p):
@@ -150,31 +163,41 @@ class LigandGatedChannel(Channel):
         return -g_decay/self.tau_decay + w*e
 
     def _g_rise_update(self, g_rise, w, e):
+
         return -g_rise/self.tau_rise + w*e
 
     #------------overwrite the update gP------------
-    def update_gP(self, t_step, deltaTms, tsp_pre, tsp_post):
+    def update_gP(self, t_step, deltaTms, tsp_pre):
         # updating e value
         if t_step not in tsp_pre:
             self.e = self._runge_kutta(self._e_update, self.e, deltaTms, 0)
+            # print(f"e is {self.e}")
         else:
             self.e = self._runge_kutta(self._e_update, self.e, deltaTms, self.e)
             self.past_pre.append(t_step)
 
-        # updating w value
-        if t_step in tsp_post:
-            self.past_post.append(t_step)
-            self.w += self._w_update(self.past_pre, self.past_post, t_step)
+        # # updating w value
+        # if t_step in tsp_post:
+        #     self.past_post.append(t_step)
+        #     self.w += self._w_update(self.past_pre, self.past_post, t_step)
+            
 
         # updating g_decay based on e and w
         if t_step not in tsp_pre:
-            self.g_decay = self._runge_kutta(self._g_decay_update, self.g_decay, deltaTms, 0,0)
-            self.g_rise = self._runge_kutta(self._g_rise_update, self.g_rise, deltaTms, 0, 0)
+            self.g_decay = self._runge_kutta(self._g_decay_update, self.g_decay, deltaTms*1000, 0,0)
+            self.g_rise = self._runge_kutta(self._g_rise_update, self.g_rise, deltaTms*1000, 0, 0)
+            # print(f"g decay is {self.g_decay}")
+            # print(f"g rise is {self.g_rise}")
         else:
-            self.g_decay = self._runge_kutta(self._g_decay_update, self.g_decay, deltaTms, self.w, self.e)
-            self.g_rise = self._runge_kutta(self._g_rise_update, self.g_rise, deltaTms, self.w, self.e)
+            self.g_decay = self._runge_kutta(self._g_decay_update, self.g_decay, deltaTms*1000, self.w, self.e)
+            self.g_rise = self._runge_kutta(self._g_rise_update, self.g_rise, deltaTms*1000, self.w, self.e)
 
         self.gP = self.g_rise - self.g_decay
+        # print(self.gP, "\n")
+    
+    def update_w(self, t_step):
+        self.past_post.append(t_step)
+        self.w += self._w_update(self.past_pre, self.past_post, t_step)
 
 class LigandGatedChannelFactory:
     gP = 1
@@ -182,6 +205,9 @@ class LigandGatedChannelFactory:
     gMax_AMPA = 0.00072
     gMax_NMDA = 0.0012
     gMax_GABA = 0.00004
+    # gMax_AMPA = 2
+    # gMax_NMDA = 1
+    # gMax_GABA = 4
     rE_AMPA = 0
     rE_NMDA = 0
     rE_GABA = -70
@@ -198,8 +224,8 @@ class LigandGatedChannelFactory:
     tau_rec = 1
     u_se = 1
 
-    tau_decay_AMPA = 1.5
-    tau_rise_AMPA = 0.09
+    tau_decay_AMPA = 10
+    tau_rise_AMPA = 15
     tau_decay_NMDA = 40
     tau_rise_NMDA = 3
     tau_decay_GABA = 5 #----I made that up 
@@ -230,31 +256,28 @@ class LigandGatedChannelFactory:
                learning_rate_GABA]
     
     @staticmethod
-    def create_AMPA(Vm=None, record_lists = []):
+    def create_AMPA(Vm=None):
         return LigandGatedChannel(LigandGatedChannelFactory.gMax_AMPA, 
                                   LigandGatedChannelFactory.gP, 
                                   LigandGatedChannelFactory.rE_AMPA, 
                                   Vm, 
-                                  LigandGatedChannelFactory.AMPA_params,
-                                  record_lists)
+                                  LigandGatedChannelFactory.AMPA_params)
 
     @staticmethod
-    def create_NMDA(Vm=None, record_lists = []):
+    def create_NMDA(Vm=None):
         return LigandGatedChannel(LigandGatedChannelFactory.gMax_NMDA, 
                                   LigandGatedChannelFactory.gP, 
                                   LigandGatedChannelFactory.rE_NMDA, 
                                   Vm, 
-                                  LigandGatedChannelFactory.NMDA_params,
-                                  record_lists)
+                                  LigandGatedChannelFactory.NMDA_params)
 
     @staticmethod
-    def create_GABA(Vm=None, record_lists = []):
+    def create_GABA(Vm=None):
         return LigandGatedChannel(LigandGatedChannelFactory.gMax_GABA, 
                                   LigandGatedChannelFactory.gP, 
                                   LigandGatedChannelFactory.rE_GABA, 
                                   Vm, 
-                                  LigandGatedChannelFactory.NMDA_params,
-                                  record_lists)
+                                  LigandGatedChannelFactory.NMDA_params)
 
 
 

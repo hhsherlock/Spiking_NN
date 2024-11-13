@@ -33,12 +33,15 @@ class HHModel:
     print(m.state)
     Cm = 1
 
-    def __init__(self, startingVoltage=0):
+    def __init__(self, startingVoltage=0, na_currents = [], k_currents = [], leak_currents = []):
         self.Vm = startingVoltage
         self.UpdateGateTimeConstants(startingVoltage)
         self.m.setInfiniteState()
         self.n.setInfiniteState()
         self.n.setInfiniteState() # ah a bug haha
+        self.na_currents = na_currents
+        self.k_currents = k_currents
+        self.leak_currents = leak_currents
 
     def UpdateGateTimeConstants(self, Vm):
         """Update time constants of all gates based on the given Vm"""
@@ -53,11 +56,9 @@ class HHModel:
         """calculate channel currents using the latest gate time constants"""
         INa = np.power(self.m.state, 3) * self.gNa * \
             self.h.state*(self.Vm-self.ENa)
-        print("Na" , INa)
         IK = np.power(self.n.state, 4) * self.gK * (self.Vm-self.EK)
-        print("K", IK)
         IKleak = self.gKleak * (self.Vm-self.EKleak)
-        print("leak", IKleak)
+
         Isum = stimulusCurrent - INa - IK - IKleak
         self.Vm += deltaTms * Isum / self.Cm
 
