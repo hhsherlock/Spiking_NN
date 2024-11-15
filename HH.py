@@ -171,7 +171,7 @@ class LigandGatedChannel(Channel):
         # updating e value
         if t_step not in tsp_pre:
             self.e = self._runge_kutta(self._e_update, self.e, deltaTms, 0)
-            # print(f"e is {self.e}")
+            print(f"e is {self.e}")
         else:
             self.e = self._runge_kutta(self._e_update, self.e, deltaTms, self.e)
             self.past_pre.append(t_step)
@@ -184,13 +184,13 @@ class LigandGatedChannel(Channel):
 
         # updating g_decay based on e and w
         if t_step not in tsp_pre:
-            self.g_decay = self._runge_kutta(self._g_decay_update, self.g_decay, deltaTms*1000, 0,0)
-            self.g_rise = self._runge_kutta(self._g_rise_update, self.g_rise, deltaTms*1000, 0, 0)
+            self.g_decay = self._runge_kutta(self._g_decay_update, self.g_decay, deltaTms*10, 0,0)
+            self.g_rise = self._runge_kutta(self._g_rise_update, self.g_rise, deltaTms*10, 0, 0)
             # print(f"g decay is {self.g_decay}")
             # print(f"g rise is {self.g_rise}")
         else:
-            self.g_decay = self._runge_kutta(self._g_decay_update, self.g_decay, deltaTms*1000, self.w, self.e)
-            self.g_rise = self._runge_kutta(self._g_rise_update, self.g_rise, deltaTms*1000, self.w, self.e)
+            self.g_decay = self._runge_kutta(self._g_decay_update, self.g_decay, deltaTms*10, self.w, self.e)
+            self.g_rise = self._runge_kutta(self._g_rise_update, self.g_rise, deltaTms*10, self.w, self.e)
 
         self.gP = self.g_rise - self.g_decay
         # print(self.gP, "\n")
@@ -214,7 +214,7 @@ class LigandGatedChannelFactory:
 
     # set every initial value to 1
     w_init = 1
-    e_init = 1
+    e_init = 0.8
     g_decay_init = 1
     g_rise_init = 1
     tau_pre = 20
@@ -255,6 +255,13 @@ class LigandGatedChannelFactory:
                past_pre, past_post,
                learning_rate_GABA]
     
+    @classmethod
+    def set_params(params):
+        LigandGatedChannelFactory.gMax_AMPA, \
+            LigandGatedChannelFactory.rE_AMPA, \
+                LigandGatedChannelFactory.AMPA_params = params
+
+
     @staticmethod
     def create_AMPA(Vm=None):
         return LigandGatedChannel(LigandGatedChannelFactory.gMax_AMPA, 
