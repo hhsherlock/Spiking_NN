@@ -202,7 +202,7 @@ class LigandGatedChannel(Channel):
 class LigandGatedChannelFactory:
     gP = 1
     
-    gMax_AMPA = 0.00072
+    gMax_AMPA = 0.0072
     gMax_NMDA = 0.0012
     gMax_GABA = 0.00004
     # gMax_AMPA = 2
@@ -224,8 +224,8 @@ class LigandGatedChannelFactory:
     tau_rec = 1
     u_se = 1
 
-    tau_decay_AMPA = 10
-    tau_rise_AMPA = 15
+    tau_decay_AMPA = 35
+    tau_rise_AMPA = 7
     tau_decay_NMDA = 40
     tau_rise_NMDA = 3
     tau_decay_GABA = 5 #----I made that up 
