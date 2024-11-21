@@ -29,7 +29,7 @@ class Gate:
     # def update_alpha_beta(self):
 
     def initialise(self):
-        print("this line runs")
+        # print("this line runs")
         self.state = self.alpha / (self.alpha + self.beta)
 
 
@@ -61,7 +61,7 @@ class VoltageGatedChannel(Channel):
         self.m.initialise()
         self.n.initialise()
         self.h.initialise()
-        print(self.m.alpha)
+        # print(self.m.alpha)
 
 
 
@@ -171,7 +171,7 @@ class LigandGatedChannel(Channel):
         # updating e value
         if t_step not in tsp_pre:
             self.e = self._runge_kutta(self._e_update, self.e, deltaTms, 0)
-            print(f"e is {self.e}")
+            # print(f"e is {self.e}")
         else:
             self.e = self._runge_kutta(self._e_update, self.e, deltaTms, self.e)
             self.past_pre.append(t_step)
