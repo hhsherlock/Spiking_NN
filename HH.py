@@ -119,6 +119,7 @@ class Voltage_Leak(VoltageGatedChannel):
 
 #---------------------------------------ligand gated channel-------------------------------------
 
+# it is actually only for AMPA and GABA because NMDA behaves differently
 class LigandGatedChannel(Channel):
 
     def __init__(self, gMax, gP, rE, Vm, params):
@@ -199,11 +200,20 @@ class LigandGatedChannel(Channel):
         self.past_post.append(t_step)
         self.w += self._w_update(self.past_pre, self.past_post, t_step)
 
+# class only for NMDA
+class NMDA(LigandGatedChannel):
+    def update_gP(self, t_step, deltaTms, tsp_pre, mg):
+        super().update_gP(t_step, deltaTms, tsp_pre)
+        add_mg = 1/(1+mg*np.exp(-0.062*self.Vm)/3.57) * self.gP
+        return add_mg
+
+
 class LigandGatedChannelFactory:
     gP = 1
     
     gMax_AMPA = 0.0072
-    gMax_NMDA = 0.0012
+    # gMax_NMDA = 0.0012
+    gMax_NMDA = 0.0144
     gMax_GABA = 0.00004
     # gMax_AMPA = 2
     # gMax_NMDA = 1
@@ -226,8 +236,8 @@ class LigandGatedChannelFactory:
 
     tau_decay_AMPA = 35
     tau_rise_AMPA = 7
-    tau_decay_NMDA = 40
-    tau_rise_NMDA = 3
+    tau_decay_NMDA = 10
+    tau_rise_NMDA = 7
     tau_decay_GABA = 5 #----I made that up 
     tau_rise_GABA = 5 #----I made that up 
 
@@ -272,7 +282,7 @@ class LigandGatedChannelFactory:
 
     @staticmethod
     def create_NMDA(Vm=None):
-        return LigandGatedChannel(LigandGatedChannelFactory.gMax_NMDA, 
+        return NMDA(LigandGatedChannelFactory.gMax_NMDA, 
                                   LigandGatedChannelFactory.gP, 
                                   LigandGatedChannelFactory.rE_NMDA, 
                                   Vm, 

@@ -1,0 +1,34 @@
+only AMPA: 
+    gMax_AMPA = 0.0072
+    gMax_NMDA = 0.0012
+    gMax_GABA = 0.00004
+    # gMax_AMPA = 2
+    # gMax_NMDA = 1
+    # gMax_GABA = 4
+    rE_AMPA = 0
+    rE_NMDA = 0
+    rE_GABA = -70
+
+    # set every initial value to 1
+    w_init = 1
+    e_init = 0.8
+    g_decay_init = 1
+    g_rise_init = 1
+    tau_pre = 20
+    tau_post = 10
+
+    # no idea what values those are
+    tau_rec = 1
+    u_se = 1
+
+    tau_decay_AMPA = 35
+    tau_rise_AMPA = 7
+    tau_decay_NMDA = 40
+    tau_rise_NMDA = 3
+    tau_decay_GABA = 5 #----I made that up 
+    tau_rise_GABA = 5 #----I made that up 
+
+    learning_rate_AMPA = 0.5 #----I made that up 
+    learning_rate_NMDA = 0.8 #----I made that up 
+    learning_rate_GABA = 0.5 #----I made that up 
+
