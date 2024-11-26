@@ -207,17 +207,18 @@ class NMDA(LigandGatedChannel):
         add_mg = 1/(1+mg*np.exp(-0.062*self.Vm)/3.57) * self.gP
         return add_mg
 
-
+class GABA(LigandGatedChannel):
+    def current(self):
+        return super().current()
 class LigandGatedChannelFactory:
     gP = 1
     
     gMax_AMPA = 0.0072
     # gMax_NMDA = 0.0012
     gMax_NMDA = 0.0144
-    gMax_GABA = 0.00004
-    # gMax_AMPA = 2
-    # gMax_NMDA = 1
-    # gMax_GABA = 4
+    # gMax_GABA = 0.00004
+    gMax_GABA = 0.04
+
     rE_AMPA = 0
     rE_NMDA = 0
     rE_GABA = -70
@@ -238,8 +239,8 @@ class LigandGatedChannelFactory:
     tau_rise_AMPA = 7
     tau_decay_NMDA = 10
     tau_rise_NMDA = 7
-    tau_decay_GABA = 5 #----I made that up 
-    tau_rise_GABA = 5 #----I made that up 
+    tau_decay_GABA = 20 #----I made that up 
+    tau_rise_GABA = 7 #----I made that up 
 
     learning_rate_AMPA = 0.5 #----I made that up 
     learning_rate_NMDA = 0.8 #----I made that up 
