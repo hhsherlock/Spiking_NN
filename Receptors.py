@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Fri Oct 18
+Created on Wed Nov 27
 
 I rewrote the code from and fixed some problems and add sth new:
 Python implementation of the Hodgkin-Huxley spiking neuron model
 https://github.com/swharden/pyHH
+
+changed stuff to run in a neural network
 @author: yaning
 """
 
@@ -167,33 +169,30 @@ class LigandGatedChannel(Channel):
         return -g_rise/self.tau_rise + w*e
 
     #------------overwrite the update gP------------
-    def update_gP(self, t_step, deltaTms, tsp_pre):
+    def update_gP(self, state, deltaTms):
         # updating e value
-        if t_step not in tsp_pre:
-            self.e = self._runge_kutta(self._e_update, self.e, deltaTms, 0)
-            # print(f"e is {self.e}")
-        else:
+        if state:
             self.e = self._runge_kutta(self._e_update, self.e, deltaTms, self.e)
+            # i also need to record the time steps
+            
             self.past_pre.append(t_step)
 
-        # # updating w value
-        # if t_step in tsp_post:
-        #     self.past_post.append(t_step)
-        #     self.w += self._w_update(self.past_pre, self.past_post, t_step)
+        else:
+            self.e = self._runge_kutta(self._e_update, self.e, deltaTms, 0)
+            # print("this line runs")
             
 
         # updating g_decay based on e and w
-        if t_step not in tsp_pre:
-            self.g_decay = self._runge_kutta(self._g_decay_update, self.g_decay, deltaTms*10, 0,0)
-            self.g_rise = self._runge_kutta(self._g_rise_update, self.g_rise, deltaTms*10, 0, 0)
-            # print(f"g decay is {self.g_decay}")
-            # print(f"g rise is {self.g_rise}")
-        else:
+        if state:
             self.g_decay = self._runge_kutta(self._g_decay_update, self.g_decay, deltaTms*10, self.w, self.e)
             self.g_rise = self._runge_kutta(self._g_rise_update, self.g_rise, deltaTms*10, self.w, self.e)
+        else:
+            self.g_decay = self._runge_kutta(self._g_decay_update, self.g_decay, deltaTms*10, 0,0)
+            self.g_rise = self._runge_kutta(self._g_rise_update, self.g_rise, deltaTms*10, 0, 0)
+            
 
         self.gP = self.g_rise - self.g_decay
-        # print(self.gP, "\n")
+
     
     def update_w(self, t_step):
         self.past_post.append(t_step)
@@ -201,13 +200,18 @@ class LigandGatedChannel(Channel):
 
 # class only for NMDA
 class NMDA(LigandGatedChannel):
-    def update_gP(self, t_step, deltaTms, tsp_pre, mg):
-        super().update_gP(t_step, deltaTms, tsp_pre)
-        self.gP = 1/(1+mg*np.exp(-0.062*self.Vm)/3.57) * self.gP
+    _mg = 0.01
+    def update_gP(self, state, deltaTms):
+        super().update_gP(state, deltaTms)
+        add_mg = 1/(1+self._mg*np.exp(-0.062*self.Vm)/3.57) * self.gP
+        return 
 
-class GABA(LigandGatedChannel):
-    def current(self):
-        return -super().current()
+
+    # def update_gP(self, t_step, deltaTms):
+    #     super().update_gP(t_step, deltaTms)
+    #     add_mg = 1/(1+mg*np.exp(-0.062*self.Vm)/3.57) * self.gP
+    #     return add_mg
+
 
 #---------------------------------------ligand gated channel factory----------------------------------
 class LigandGatedChannelFactory:
@@ -291,7 +295,7 @@ class LigandGatedChannelFactory:
 
     @staticmethod
     def create_GABA(Vm=None):
-        return GABA(LigandGatedChannelFactory.gMax_GABA, 
+        return LigandGatedChannel(LigandGatedChannelFactory.gMax_GABA, 
                                   LigandGatedChannelFactory.gP, 
                                   LigandGatedChannelFactory.rE_GABA, 
                                   Vm, 
