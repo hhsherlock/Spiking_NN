@@ -175,7 +175,7 @@ class LigandGatedChannel(Channel):
             self.e = self._runge_kutta(self._e_update, self.e, deltaTms, self.e)
             # i also need to record the time steps
             
-            self.past_pre.append(t_step)
+            # self.past_pre.append(t_step)
 
         else:
             self.e = self._runge_kutta(self._e_update, self.e, deltaTms, 0)
