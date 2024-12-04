@@ -12,6 +12,7 @@ changed stuff to run in a neural network
 """
 
 import numpy as np
+import random 
 
 
 # gate for voltage gated channels 
@@ -228,7 +229,11 @@ class LigandGatedChannelFactory:
     rE_GABA = -70
 
     # set every initial value to 1
-    w_init = 1
+    # w_init 1 is too small for an action potential, 12 is fine
+    # need to adjust those  
+    w_init_AMPA = random.uniform(10.0, 14.0)
+    w_init_NMDA = random.uniform(10.0, 14.0)
+    w_init_GABA = random.uniform(10.0, 14.0)
     e_init = 0.8
     g_decay_init = 1
     g_rise_init = 1
@@ -241,7 +246,8 @@ class LigandGatedChannelFactory:
 
     tau_decay_AMPA = 35
     tau_rise_AMPA = 7
-    tau_decay_NMDA = 10
+    # tau_decay_NMDA = 10 works fine but the nmda current is too small
+    tau_decay_NMDA = 15
     tau_rise_NMDA = 7
     tau_decay_GABA = 20 #----I made that up 
     tau_rise_GABA = 7 #----I made that up 
@@ -255,26 +261,29 @@ class LigandGatedChannelFactory:
     
     #tau_pre, tau_post, tau_rec, tau_decay, tau_rise, u_se,  w, e, g_decay, g_rise,
     #past_pre, past_post, learning_rate
-    AMPA_params = [tau_pre, tau_post, tau_rec, tau_decay_AMPA, tau_rise_AMPA, u_se, w_init, 
+    AMPA_params = [tau_pre, tau_post, tau_rec, tau_decay_AMPA, tau_rise_AMPA, u_se, w_init_AMPA, 
                e_init, g_decay_init, g_rise_init,
                past_pre, past_post,
                learning_rate_AMPA]
 
-    NMDA_params = [tau_pre, tau_post, tau_rec, tau_decay_NMDA, tau_rise_NMDA, u_se, w_init, 
+    NMDA_params = [tau_pre, tau_post, tau_rec, tau_decay_NMDA, tau_rise_NMDA, u_se, w_init_NMDA, 
                e_init, g_decay_init, g_rise_init,
                past_pre, past_post,
                learning_rate_NMDA]
 
-    GABA_params = [tau_pre, tau_post, tau_rec, tau_decay_GABA, tau_rise_GABA, u_se, w_init, 
+    GABA_params = [tau_pre, tau_post, tau_rec, tau_decay_GABA, tau_rise_GABA, u_se, w_init_GABA, 
                e_init, g_decay_init, g_rise_init,
                past_pre, past_post,
                learning_rate_GABA]
     
     @classmethod
     def set_params(params):
-        LigandGatedChannelFactory.gMax_AMPA, \
-            LigandGatedChannelFactory.rE_AMPA, \
-                LigandGatedChannelFactory.AMPA_params = params
+        LigandGatedChannelFactory.w_init_AMPA = random.uniform(10.0, 14.0)
+        LigandGatedChannelFactory.w_init_NMDA = random.uniform(10.0, 14.0)
+        LigandGatedChannelFactory.w_init_GABA = random.uniform(0.0, 0.0)
+        # LigandGatedChannelFactory.gMax_AMPA, \
+        #     LigandGatedChannelFactory.rE_AMPA, \
+        #         LigandGatedChannelFactory.AMPA_params = params
 
 
     @staticmethod
@@ -299,7 +308,7 @@ class LigandGatedChannelFactory:
                                   LigandGatedChannelFactory.gP, 
                                   LigandGatedChannelFactory.rE_GABA, 
                                   Vm, 
-                                  LigandGatedChannelFactory.NMDA_params)
+                                  LigandGatedChannelFactory.GABA_params)
 
 
 

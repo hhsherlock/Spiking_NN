@@ -224,7 +224,8 @@ class LigandGatedChannelFactory:
     rE_GABA = -70
 
     # set every initial value to 1
-    w_init = 1
+    # w_init = 12 can activate the neuron
+    w_init = 12
     e_init = 0.8
     g_decay_init = 1
     g_rise_init = 1
