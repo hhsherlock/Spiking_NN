@@ -296,7 +296,7 @@ class LigandGatedChannelFactory:
                                   LigandGatedChannelFactory.gP, 
                                   LigandGatedChannelFactory.rE_GABA, 
                                   Vm, 
-                                  LigandGatedChannelFactory.NMDA_params)
+                                  LigandGatedChannelFactory.GABA_params)
 
 
 

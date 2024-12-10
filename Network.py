@@ -15,10 +15,12 @@ import matplotlib.pyplot as plt
 class Neuron:
     _Cm = 1
 
-    def __init__(self, deltaTms, I, Vm):
+    def __init__(self, deltaTms, I, Vm, Name):
         self.deltaTms = deltaTms
         self.I = I
         self.Vm = Vm
+        self.Name = Name        
+
         self.incoming_synapses = []
         self.outgoing_synapses = []
     
@@ -28,11 +30,29 @@ class Neuron:
     
     # voltage and ion channel currents update has to be here because it sums from all dendrites
     def update(self):
+        # Q: should i update voltage before the gP, do they make a difference?
+        # update the ion channel voltage
+        self._sodium_channel.Vm = self.Vm
+        self._potassium_channel.Vm = self.Vm
+        self._leaky_channel.Vm = self.Vm
+        
         # ion channel currents
         self._sodium_channel.update_gP(self.deltaTms)
         self._potassium_channel.update_gP(self.deltaTms)
         
-
+        # update the receptors gP in neuron
+        # cannot do it in synapse because the amount of updating depends on the connections 
+        # but it shouldn't 
+        Ireceptors = 0
+        synapses = self.incoming_synapses
+        for synapse in synapses:
+            receptors = synapse.receptors
+            for receptor in receptors:
+                receptor.Vm = self.Vm
+                receptor.update_gP(synapse.state, self.deltaTms)
+                Ireceptors += receptor.current()
+                
+        
         try:
         # get the currents
             Ina = self._sodium_channel.current()
@@ -45,6 +65,7 @@ class Neuron:
                 "INa": Ina,
                 "IK": Ik,
                 "Ileak": Ileak,
+                "IReceptor": Ireceptors
                 # "Iampa": Iampa,
                 # "Inmda": Inmda,
                 # "Igaba": Igaba
@@ -59,27 +80,20 @@ class Neuron:
             
 
         # add the ion channel currents
-        self.I = Ina + Ik + Ileak + self.I
+        self.I = Ina + Ik + Ileak + Ireceptors
         self.Vm += - self.deltaTms * self.I / self._Cm
 
-        # update the ion channel voltage
-        self._sodium_channel.Vm = self.Vm
-        self._potassium_channel.Vm = self.Vm
-        self._leaky_channel.Vm = self.Vm
-        # print(self.Vm)
-    
     # when this neuron fires, send signal to the connected post synapses
+    def check_firing(self):
+        if self.Vm >= 100:
+            self.sending_signal()
+            print(f"Neuron: {self.Name} fires")
+
+    # this function is for manually set some neurons on fire ;)
     def sending_signal(self):
         for synapse in self.outgoing_synapses:
             synapse.state = 1
 
-    # when the pre synapses fire, it activates this function
-    def inject_current(self, sum_currents):
-        self.I = sum_currents
-
-        
-    # def add_incoming_synapses(self, ):
-    #     self.incoming_synapses.append()
 
 #--------------------------------Synapse--------------------------------------
 # ligand gated receptors belong to the synapse
@@ -99,19 +113,7 @@ class Synapse:
         if args:
             self.receptors.extend(args)
     
-    # update the gP
-    def update(self):
-        sum_currents = 0
-        Vm = self.receive_neuron.Vm
-        for receptor in self.receptors:
-            receptor.update_gP(self.state, self.deltaTms)
-            sum_currents += receptor.current()
 
-            receptor.Vm = Vm
-
-            # print(sum_currents)
-        
-        self.receive_neuron.inject_current(sum_currents)
 
 #--------------------------------Control (make connections)--------------------------------------
 class Control:
@@ -124,6 +126,7 @@ class Control:
     # also let the neurons know their connections and keep record of all synapses so they can be updated easily
     def create_synapse(self, send_neuron, receive_neuron, type):
         
+        # create receptors accordingly
         if type == "AMPA":
             # temporal solution for weight randomise
             Receptors.LigandGatedChannelFactory.set_params()
@@ -138,6 +141,7 @@ class Control:
         
         elif type == "GABA":
             Receptors.LigandGatedChannelFactory.set_params()
+            print(Receptors.LigandGatedChannelFactory.w_init_GABA)
             gaba_receptor = Receptors.LigandGatedChannelFactory.create_GABA(self.Vm)
             synapse = Synapse(self.deltaTms, 0, send_neuron, receive_neuron, gaba_receptor)
 

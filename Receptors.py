@@ -204,8 +204,7 @@ class NMDA(LigandGatedChannel):
     _mg = 0.01
     def update_gP(self, state, deltaTms):
         super().update_gP(state, deltaTms)
-        add_mg = 1/(1+self._mg*np.exp(-0.062*self.Vm)/3.57) * self.gP
-        return 
+        self.gP = 1/(1+self._mg*np.exp(-0.062*self.Vm)/3.57) * self.gP
 
 
     # def update_gP(self, t_step, deltaTms):
@@ -213,6 +212,9 @@ class NMDA(LigandGatedChannel):
     #     add_mg = 1/(1+mg*np.exp(-0.062*self.Vm)/3.57) * self.gP
     #     return add_mg
 
+class GABA(LigandGatedChannel):
+    def current(self):
+        return -super().current()
 
 #---------------------------------------ligand gated channel factory----------------------------------
 class LigandGatedChannelFactory:
@@ -304,7 +306,7 @@ class LigandGatedChannelFactory:
 
     @staticmethod
     def create_GABA(Vm=None):
-        return LigandGatedChannel(LigandGatedChannelFactory.gMax_GABA, 
+        return GABA(LigandGatedChannelFactory.gMax_GABA, 
                                   LigandGatedChannelFactory.gP, 
                                   LigandGatedChannelFactory.rE_GABA, 
                                   Vm, 
