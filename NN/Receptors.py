@@ -226,6 +226,7 @@ class LigandGatedChannelFactory:
     # gMax_GABA = 0.00004
     gMax_GABA = 0.04
 
+    # those are from the paper so no inference
     rE_AMPA = 0
     rE_NMDA = 0
     rE_GABA = -70
@@ -236,6 +237,8 @@ class LigandGatedChannelFactory:
     w_init_AMPA = random.uniform(10.0, 14.0)
     w_init_NMDA = random.uniform(10.0, 14.0)
     w_init_GABA = random.uniform(10.0, 14.0)
+    
+    # should they be different for different receptors?
     e_init = 0.8
     g_decay_init = 1
     g_rise_init = 1
@@ -253,6 +256,37 @@ class LigandGatedChannelFactory:
     tau_rise_NMDA = 7
     tau_decay_GABA = 20 #----I made that up 
     tau_rise_GABA = 7 #----I made that up 
+    
+    # inference parameters
+    infer_params = {
+        "gMax_AMPA" : gMax_AMPA,
+        "gMax_NMDA" : gMax_NMDA,
+        "gMax_GABA" : gMax_GABA,
+
+        "w_init_AMPA" : w_init_AMPA,
+        "w_init_NMDA" : w_init_NMDA,
+        "w_init_GABA" : w_init_GABA,
+        
+        "e_init" : e_init,
+        "g_decay_init" : g_decay_init,
+        "g_rise_init" : g_rise_init,
+        "tau_pre" : tau_pre,
+        "tau_post" : tau_post,
+
+        "tau_rec" : tau_rec,
+        "u_se" : u_se,
+
+        "tau_decay_AMPA" : tau_decay_AMPA,
+        "tau_rise_AMPA" : tau_rise_AMPA,
+        "tau_decay_NMDA" : tau_decay_NMDA,
+        "tau_rise_NMDA" : tau_rise_NMDA,
+        "tau_decay_GABA" : tau_decay_GABA,
+        "tau_rise_GABA" : tau_rise_GABA 
+        }
+    
+    infer_names = ["gMax_AMPA", "gMax_NMDA", "gMax_GABA", "w_init_AMPA", "w_init_NMDA", "w_init_GABA",        
+        "e_init", "g_decay_init", "g_rise_init", "tau_pre", "tau_post", "tau_rec", "u_se", "tau_decay_AMPA",
+        "tau_rise_AMPA", "tau_decay_NMDA", "tau_rise_NMDA", "tau_decay_GABA", "tau_rise_GABA" ]
 
     learning_rate_AMPA = 0.5 #----I made that up 
     learning_rate_NMDA = 0.8 #----I made that up 
@@ -278,14 +312,6 @@ class LigandGatedChannelFactory:
                past_pre, past_post,
                learning_rate_GABA]
     
-    @classmethod
-    def set_params(params):
-        LigandGatedChannelFactory.w_init_AMPA = random.uniform(10.0, 14.0)
-        LigandGatedChannelFactory.w_init_NMDA = random.uniform(10.0, 14.0)
-        LigandGatedChannelFactory.w_init_GABA = random.uniform(0.0, 0.0)
-        # LigandGatedChannelFactory.gMax_AMPA, \
-        #     LigandGatedChannelFactory.rE_AMPA, \
-        #         LigandGatedChannelFactory.AMPA_params = params
 
 
     @staticmethod

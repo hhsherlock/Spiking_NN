@@ -6,7 +6,7 @@ Created on Wed Dec 04
 @author: yaning
 """
 
-import Receptors as Receptors
+import NN.Receptors as Receptors
 import importlib
 import numpy as np
 import matplotlib.pyplot as plt
@@ -15,11 +15,12 @@ import matplotlib.pyplot as plt
 class Neuron:
     _Cm = 1
 
-    def __init__(self, deltaTms, I, Vm, Name):
+    def __init__(self, deltaTms, I, Vm, Name, fire_times):
         self.deltaTms = deltaTms
         self.I = I
         self.Vm = Vm
-        self.Name = Name        
+        self.Name = Name      
+        self.fire_times = fire_times  
 
         self.incoming_synapses = []
         self.outgoing_synapses = []
@@ -84,10 +85,13 @@ class Neuron:
         self.Vm += - self.deltaTms * self.I / self._Cm
 
     # when this neuron fires, send signal to the connected post synapses
+    # this step is problematic because it only sends out signal when i am certain it fires like above -50
+    # and the signal is also very short lived?
     def check_firing(self):
-        if self.Vm >= 100:
+        if self.Vm >= 20:
             self.sending_signal()
             print(f"Neuron: {self.Name} fires")
+            self.fire_times += 1
 
     # this function is for manually set some neurons on fire ;)
     def sending_signal(self):
@@ -129,18 +133,18 @@ class Control:
         # create receptors accordingly
         if type == "AMPA":
             # temporal solution for weight randomise
-            Receptors.LigandGatedChannelFactory.set_params()
+            # Receptors.LigandGatedChannelFactory.set_params()
             ampa_receptor = Receptors.LigandGatedChannelFactory.create_AMPA(self.Vm)
             synapse = Synapse(self.deltaTms, 0, send_neuron, receive_neuron, ampa_receptor)
             
         elif type == "AMPA+NMDA":
-            Receptors.LigandGatedChannelFactory.set_params()
+            # Receptors.LigandGatedChannelFactory.set_params()
             ampa_receptor = Receptors.LigandGatedChannelFactory.create_AMPA(self.Vm)
             nmda_receptor = Receptors.LigandGatedChannelFactory.create_NMDA(self.Vm)
             synapse = Synapse(self.deltaTms, 0, send_neuron, receive_neuron, ampa_receptor, nmda_receptor)
         
         elif type == "GABA":
-            Receptors.LigandGatedChannelFactory.set_params()
+            # Receptors.LigandGatedChannelFactory.set_params()
             print(Receptors.LigandGatedChannelFactory.w_init_GABA)
             gaba_receptor = Receptors.LigandGatedChannelFactory.create_GABA(self.Vm)
             synapse = Synapse(self.deltaTms, 0, send_neuron, receive_neuron, gaba_receptor)
@@ -149,5 +153,6 @@ class Control:
         receive_neuron.incoming_synapses.append(synapse)
 
         self.all_synapses.append(synapse)
+
             
             
