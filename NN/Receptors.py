@@ -13,6 +13,7 @@ changed stuff to run in a neural network
 
 import numpy as np
 import random 
+import warnings
 
 
 # gate for voltage gated channels 
@@ -25,9 +26,13 @@ class Gate:
     # state change is the function of time 
     # basing on the alpha and beta
     def update(self, deltaTms):
+        # warnings.filterwarnings("error", category=RuntimeWarning)
+        # try:
         alphaState = self.alpha * (1-self.state)
         betaState = self.beta * self.state
         self.state += deltaTms * (alphaState - betaState)
+        # except RuntimeWarning as e:
+        #     print(f"test tes Caught a RuntimeWarning as an exception: {e}")
     
     # def update_alpha_beta(self):
 
@@ -83,7 +88,6 @@ class VoltageGatedChannel(Channel):
         self.n.update(deltaTms)
         self.h.update(deltaTms)
 
-        # then implement the gP for each type of channel
 
 
 class Voltage_Sodium(VoltageGatedChannel):

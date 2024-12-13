@@ -31,31 +31,33 @@ class Neuron:
     
     # voltage and ion channel currents update has to be here because it sums from all dendrites
     def update(self):
+        error_code = 0
         # Q: should i update voltage before the gP, do they make a difference?
         # update the ion channel voltage
         self._sodium_channel.Vm = self.Vm
         self._potassium_channel.Vm = self.Vm
         self._leaky_channel.Vm = self.Vm
         
-        # ion channel currents
-        self._sodium_channel.update_gP(self.deltaTms)
-        self._potassium_channel.update_gP(self.deltaTms)
-        
-        # update the receptors gP in neuron
-        # cannot do it in synapse because the amount of updating depends on the connections 
-        # but it shouldn't 
-        Ireceptors = 0
-        synapses = self.incoming_synapses
-        for synapse in synapses:
-            receptors = synapse.receptors
-            for receptor in receptors:
-                receptor.Vm = self.Vm
-                receptor.update_gP(synapse.state, self.deltaTms)
-                Ireceptors += receptor.current()
-                
-        
         try:
-        # get the currents
+            # ion channel currents
+            self._sodium_channel.update_gP(self.deltaTms)
+            self._potassium_channel.update_gP(self.deltaTms)
+            
+            # update the receptors gP in neuron
+            # cannot do it in synapse because the amount of updating depends on the connections 
+            # but it shouldn't 
+            Ireceptors = 0
+            synapses = self.incoming_synapses
+            for synapse in synapses:
+                receptors = synapse.receptors
+                for receptor in receptors:
+                    receptor.Vm = self.Vm
+                    receptor.update_gP(synapse.state, self.deltaTms)
+                    Ireceptors += receptor.current()
+                    
+            
+            
+            # get the currents
             Ina = self._sodium_channel.current()
             Ik = self._potassium_channel.current()
             Ileak = self._leaky_channel.current()
@@ -78,14 +80,19 @@ class Neuron:
                     raise OverflowError(f"Overflowed: {name} = {current}")
         except OverflowError as m:
             print(f"error: {m}")
+            print("this line runs")
+            error_code += 1
             
 
         # add the ion channel currents
         self.I = Ina + Ik + Ileak + Ireceptors
         self.Vm += - self.deltaTms * self.I / self._Cm
 
+        return error_code
+
     # when this neuron fires, send signal to the connected post synapses
-    # this step is problematic because it only sends out signal when i am certain it fires like above -50
+    # this step is problematic because it only sends out signal when i am certain it fires 
+    # like for now it is above -50
     # and the signal is also very short lived?
     def check_firing(self):
         if self.Vm >= 20:

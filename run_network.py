@@ -40,6 +40,9 @@ def run(infer_params):
 
     neurons = [neuron_input, neuron_excite_main, neuron_excite_sub, 
             neuron_inhibit_main, neuron_inhibit_sub, neuron_output]
+    
+    neuron_names = ["input", "excite_main", "excite_sub", "inhibit_main", "inhibit_sub", "output"]
+
 
 
 
@@ -76,10 +79,15 @@ def run(infer_params):
     # recording arrays
     neuron_voltages = []
     neuron_firing = []
+    neuron_error = []
 
 
     # run
     for t in range(pointCount):
+        # record every time step is a list
+        voltage_Tstep = []
+        fire_Tstep = []
+        error_code_Tstep = []
 
         # simulate input neuron firing
         # this step changes states of the receptors
@@ -87,20 +95,26 @@ def run(infer_params):
             neuron_input.sending_signal()
         
 
-        # update the synapse states then each neuron
+        # update the synapse states then update each neuron
         for neuron in neurons:
             neuron.check_firing()
-            neuron.update()
+            error_code = neuron.update()
+
+            # record 
+            voltage_Tstep.append(neuron.Vm)
+            fire_Tstep.append(neuron.fire_times)
+            error_code_Tstep.append(error_code)
+        
             
         # set the synapse states back to 0
         for synapse in control.all_synapses:
             synapse.state = 0
+            
 
-        for neuron in neurons:
-            neuron_voltages.append(neuron.Vm)
-            neuron_firing.append(neuron.fire_times)
-        
-    return neuron_voltages, neuron_firing, t
+        neuron_voltages.append(voltage_Tstep)
+        neuron_firing.append(fire_Tstep)
+        neuron_error.append(error_code_Tstep)
+    return neuron_voltages, neuron_firing, neuron_error, neuron_names
     
 
     
