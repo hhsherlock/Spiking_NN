@@ -27,7 +27,7 @@ initial_Vm = 1.3458754117369027
 def run(infer_params):
     Receptors.LigandGatedChannelFactory.infer_params = infer_params
     
-    # Neuron: deltaTms, I, Vm
+    # Neuron: deltaTms, I, Vm, fire times
     neuron_input = Network.Neuron(deltaTms, 0, initial_Vm, "input", 0)
 
     neuron_excite_main = Network.Neuron(deltaTms, 0, initial_Vm, "excite_main", 0)
@@ -91,8 +91,11 @@ def run(infer_params):
 
         # simulate input neuron firing
         # this step changes states of the receptors
-        if t >= 2000 and t <= 2500:
+        if t >= 2000 and t <= 2020:
             neuron_input.sending_signal()
+            
+        # if t >= 4000 and t <= 4047:
+        #     neuron_input.sending_signal()
         
 
         # update the synapse states then update each neuron

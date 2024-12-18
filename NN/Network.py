@@ -79,8 +79,8 @@ class Neuron:
                 if current > 1e10:
                     raise OverflowError(f"Overflowed: {name} = {current}")
         except OverflowError as m:
-            print(f"error: {m}")
-            print("this line runs")
+            # print(f"error: {m}")
+            # print("this line runs")
             error_code += 1
             
 
@@ -92,12 +92,12 @@ class Neuron:
 
     # when this neuron fires, send signal to the connected post synapses
     # this step is problematic because it only sends out signal when i am certain it fires 
-    # like for now it is above -50
+    # like for now it is above -50 (the values need to substract 70)
     # and the signal is also very short lived?
     def check_firing(self):
         if self.Vm >= 20:
             self.sending_signal()
-            print(f"Neuron: {self.Name} fires")
+            # print(f"Neuron: {self.Name} fires")
             self.fire_times += 1
 
     # this function is for manually set some neurons on fire ;)
@@ -152,7 +152,7 @@ class Control:
         
         elif type == "GABA":
             # Receptors.LigandGatedChannelFactory.set_params()
-            print(Receptors.LigandGatedChannelFactory.w_init_GABA)
+            # print(Receptors.LigandGatedChannelFactory.w_init_GABA)
             gaba_receptor = Receptors.LigandGatedChannelFactory.create_GABA(self.Vm)
             synapse = Synapse(self.deltaTms, 0, send_neuron, receive_neuron, gaba_receptor)
 
