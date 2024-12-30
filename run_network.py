@@ -91,7 +91,7 @@ def run(infer_params):
 
         # simulate input neuron firing
         # this step changes states of the receptors
-        if t >= 2000 and t <= 2020:
+        if t >= 2000 and t <= 2047:
             neuron_input.sending_signal()
             
         # if t >= 4000 and t <= 4047:
