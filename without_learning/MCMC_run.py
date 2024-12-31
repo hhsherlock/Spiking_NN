@@ -14,7 +14,7 @@ from torch.distributions import Normal, Uniform
 from tqdm import tqdm
 
 # functions and classes that i wrote
-import run_network
+import run_network as run_network
 import NN.Receptors as Receptors
 import NN.Network as Network
 
@@ -53,12 +53,12 @@ min_voltage_old, max_voltage_old = get_min_max_distance(voltages)
 
 samples = []
 pure_samples = []
-num = 1500
+num = 15
 for i in tqdm(range(num), desc="Processing", ncols=100):
     # sampling
     # std = np.exp(-i*3/num)
     std = 1
-    factor = 30
+    factor = 50
     one_round_pure_sample = []
     
     temp_infer_params = infer_params
@@ -110,5 +110,7 @@ for i in tqdm(range(num), desc="Processing", ncols=100):
 samples = np.array(samples)
 pure_samples = np.array(pure_samples)
 
-np.save('static_std_initial_0.npy', samples)
-np.save('static_std_initial_0_pure.npy', pure_samples)
+path = "/home/yaning/Documents/Spiking_NN/without_learning/MCMC_samples/"
+
+np.save(path + 'test.npy', samples)
+np.save(path + 'test_pure.npy', pure_samples)

@@ -200,6 +200,7 @@ class LigandGatedChannel(Channel):
 
     
     def update_w(self, t_step):
+        # when the post neuron fires, add the time step to past_post
         self.past_post.append(t_step)
         self.w += self._w_update(self.past_pre, self.past_post, t_step)
 

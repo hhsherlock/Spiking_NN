@@ -6,7 +6,7 @@ Created on Wed Dec 04
 @author: yaning
 """
 
-import NN.Receptors as Receptors
+import without_learning.NN.Receptors as Receptors
 import importlib
 import numpy as np
 import matplotlib.pyplot as plt
@@ -44,7 +44,7 @@ class Neuron:
             self._potassium_channel.update_gP(self.deltaTms)
             
             # update the receptors gP in neuron
-            # cannot do it in synapse because the amount of updating will depend on the connections 
+            # cannot do it in synapse because the amount of updating depends on the connections 
             # but it shouldn't 
             Ireceptors = 0
             synapses = self.incoming_synapses

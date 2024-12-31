@@ -6,7 +6,7 @@ Created on Wed Dec 04
 @author: yaning
 """
 
-import NN.Receptors as Receptors
+import with_learning.learning_NN.Receptors as Receptors
 import importlib
 import numpy as np
 import matplotlib.pyplot as plt
@@ -44,7 +44,7 @@ class Neuron:
             self._potassium_channel.update_gP(self.deltaTms)
             
             # update the receptors gP in neuron
-            # cannot do it in synapse because the amount of updating depends on the connections 
+            # cannot do it in synapse because the amount of updating will depend on the connections 
             # but it shouldn't 
             Ireceptors = 0
             synapses = self.incoming_synapses
@@ -94,13 +94,25 @@ class Neuron:
     # this step is problematic because it only sends out signal when i am certain it fires 
     # like for now it is above -50 (the values need to substract 70)
     # and the signal is also very short lived?
-    def check_firing(self):
+    # also update the synapse weight with the pre-synapse neuron
+    def check_firing(self, t):
         if self.Vm >= 20:
             self.sending_signal()
             # print(f"Neuron: {self.Name} fires")
             self.fire_times += 1
+            # when post synapses fire update the weights between pre and post
+            # in this function the past_post is plus one
+            for synapse in self.incoming_synapses:
+                for receptor in synapse.receptors:
+                    receptor.update_w(t)
 
-    # this function is for manually set some neurons on fire ;)
+            # when this neuron is pre synapse then record it to past_pre
+            for synapse in self.outgoing_synapses:
+                for receptor in synapse.receptors:
+                    receptor.past_pre.append(t)
+
+
+    # change the post synapses state to active
     def sending_signal(self):
         for synapse in self.outgoing_synapses:
             synapse.state = 1
@@ -123,6 +135,7 @@ class Synapse:
         self.receptors = []
         if args:
             self.receptors.extend(args)
+
     
 
 
