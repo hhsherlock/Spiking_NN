@@ -35,6 +35,7 @@ class HHModel:
 
     def __init__(self, startingVoltage=0, na_currents = [], k_currents = [], leak_currents = []):
         self.Vm = startingVoltage
+        self.I = 0
         self.UpdateGateTimeConstants(startingVoltage)
         self.m.setInfiniteState()
         self.n.setInfiniteState()
@@ -60,6 +61,7 @@ class HHModel:
         IKleak = self.gKleak * (self.Vm-self.EKleak)
 
         Isum = stimulusCurrent - INa - IK - IKleak
+        self.I = Isum
         self.Vm += deltaTms * Isum / self.Cm
 
     def UpdateGateStates(self, deltaTms):

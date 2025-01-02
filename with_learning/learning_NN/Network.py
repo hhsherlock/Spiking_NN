@@ -15,12 +15,12 @@ import matplotlib.pyplot as plt
 class Neuron:
     _Cm = 1
 
-    def __init__(self, deltaTms, I, Vm, Name, fire_times):
+    def __init__(self, deltaTms, I, Vm, Name):
         self.deltaTms = deltaTms
         self.I = I
         self.Vm = Vm
         self.Name = Name      
-        self.fire_times = fire_times  
+        self.fire_tstep = []  
 
         self.incoming_synapses = []
         self.outgoing_synapses = []
@@ -99,7 +99,7 @@ class Neuron:
         if self.Vm >= 20:
             self.sending_signal()
             # print(f"Neuron: {self.Name} fires")
-            self.fire_times += 1
+            self.fire_tstep.append(t)
             # when post synapses fire update the weights between pre and post
             # in this function the past_post is plus one
             for synapse in self.incoming_synapses:
