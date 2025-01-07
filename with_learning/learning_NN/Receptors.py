@@ -128,14 +128,23 @@ class Voltage_Leak(VoltageGatedChannel):
 
 class LigandGatedChannel(Channel):
 
-    def __init__(self, gMax, gP, rE, Vm, params):
+    def __init__(self, gMax, gP, rE, Vm, e, u_se, g_decay, g_rise,
+                 w, tau_rec, tau_pre, tau_post, tau_decay, tau_rise, 
+                 learning_rate, label):
         super().__init__(gMax, gP, rE, Vm)
-        self.tau_pre, self.tau_post, \
-            self.tau_rec, self.tau_decay,\
-             self.tau_rise, self.u_se, self.w, \
-                 self.e, self.g_decay, self.g_rise, \
-                     self.past_pre, self.past_post, \
-                             self.learning_rate = params
+        self.e = e
+        self.u_se = u_se
+        self.g_decay = g_decay
+        self.g_rise = g_rise
+        self.w = w
+        self.tau_rec = tau_rec
+        self.tau_pre = tau_pre
+        self.tau_post = tau_post
+        self.tau_decay = tau_decay
+        self.tau_rise = tau_rise
+        
+        self.learning_rate = learning_rate
+        self.label = label
     
     #------------tool methods--------------------
     @staticmethod
@@ -152,8 +161,9 @@ class LigandGatedChannel(Channel):
     # integrate function for weight
     def _integrate(self, past, current, tau_p):
         integrate_result = 0
+        # print(past)
         for i in past:
-            integrate_result += np.exp(-(current-i)/tau_p)
+            integrate_result += np.exp(-(current-i)*0.0005/tau_p)
         return integrate_result
     
     # ----------w(m,n) synapse weight----------------
@@ -199,10 +209,13 @@ class LigandGatedChannel(Channel):
         self.gP = self.g_rise - self.g_decay
 
     
-    def update_w(self, t_step):
+    def update_w(self, t_step, neuron_past_pre, neuron_past_post):
         # when the post neuron fires, add the time step to past_post
-        self.past_post.append(t_step)
-        self.w += self._w_update(self.past_pre, self.past_post, t_step)
+        self.w += self._w_update(neuron_past_pre, neuron_past_post, t_step)
+
+class AMPA(LigandGatedChannel):
+    pass
+        
 
 # class only for NMDA
 class NMDA(LigandGatedChannel):
@@ -221,128 +234,148 @@ class GABA(LigandGatedChannel):
     def current(self):
         return -super().current()
 
-#---------------------------------------ligand gated channel factory----------------------------------
-class LigandGatedChannelFactory:
-    gP = 1
+
+
+
+
+
+
+
+
+
+
+
+
+
+# #------------------ligand gated channel factory (this is a horrible idea)-----------------------
+# class LigandGatedChannelFactory:
+#     gP = 1
     
-    gMax_AMPA = 0.0072
-    # gMax_NMDA = 0.0012
-    gMax_NMDA = 0.0144
-    # gMax_GABA = 0.00004
-    gMax_GABA = 0.04
+#     gMax_AMPA = 0.00072 #according to book 720ps 
+#     # gMax_NMDA = 0.0012
+#     gMax_NMDA = 0.0012 # according to book 1.2ns
+#     # gMax_GABA = 0.00004
+#     gMax_GABA = 0.04
 
-    # those are from the paper so no inference
-    rE_AMPA = 0
-    rE_NMDA = 0
-    rE_GABA = -70
-
-    # set every initial value to 1
-    # w_init 1 is too small for an action potential, 12 is fine
-    # need to adjust those  
-    w_init_AMPA = random.uniform(10.0, 14.0)
-    w_init_NMDA = random.uniform(10.0, 14.0)
-    w_init_GABA = random.uniform(10.0, 14.0)
+#     # those are from the paper so no inference
+#     rE_AMPA = 0
+#     rE_NMDA = 0
+#     rE_GABA = -70
     
-    # should they be different for different receptors?
-    e_init = 0.8
-    g_decay_init = 1
-    g_rise_init = 1
-    tau_pre = 20
-    tau_post = 10
-
-    # no idea what values those are
-    tau_rec = 1
-    u_se = 1
-
-    tau_decay_AMPA = 35
-    tau_rise_AMPA = 7
-    # tau_decay_NMDA = 10 works fine but the nmda current is too small
-    tau_decay_NMDA = 15
-    tau_rise_NMDA = 7
-    tau_decay_GABA = 20 #----I made that up 
-    tau_rise_GABA = 7 #----I made that up 
+#     # should they be different for different receptors?
+#     e_init = 0.8
+#     g_decay_init = 1
+#     g_rise_init = 1
+#     u_se = 1
     
-    # inference parameters
-    infer_params = {
-        "gMax_AMPA" : gMax_AMPA,
-        "gMax_NMDA" : gMax_NMDA,
-        "gMax_GABA" : gMax_GABA,
+    
+#     # set every initial value to 1
+#     # w_init 1 is too small for an action potential, 12 is fine
+#     # need to adjust those  
+#     w_init_AMPA = random.uniform(10.0, 14.0)
+#     w_init_NMDA = random.uniform(10.0, 14.0)
+#     w_init_GABA = random.uniform(10.0, 14.0)
 
-        "w_init_AMPA" : w_init_AMPA,
-        "w_init_NMDA" : w_init_NMDA,
-        "w_init_GABA" : w_init_GABA,
+#     w_init = 12
+    
+#     tau_rec = 1
+#     tau_pre = 20
+#     tau_post = 10
+
+#     tau_decay_AMPA = 35
+#     tau_rise_AMPA = 7
+#     # tau_decay_NMDA = 10 works fine but the nmda current is too small
+#     tau_decay_NMDA = 15
+#     tau_rise_NMDA = 7
+#     tau_decay_GABA = 20 #----I made that up 
+#     tau_rise_GABA = 7 #----I made that up 
+    
+#     # inference parameters
+#     infer_params = {
+#         # this might be extremly small
+#         "gMax_GABA" : gMax_GABA,
         
-        "e_init" : e_init,
-        "g_decay_init" : g_decay_init,
-        "g_rise_init" : g_rise_init,
-        "u_se" : u_se,
+#         # between 0-1
+#         "e_init" : e_init, # has to be 0-1 because the differentiate formula
+#         "u_se" : u_se, # fraction of avaible transmitter 
         
-        # taus are together better for sampling
-        "tau_pre" : tau_pre,
-        "tau_post" : tau_post,
-        "tau_rec" : tau_rec,
+#         # do not need to be between 0-1
+#         "g_decay_init" : g_decay_init, # technically substraction of 
+#         "g_rise_init" : g_rise_init, # both should be smaller than 1 (fraction)
+
+#         "w_init" : w_init,
+
+#         "tau_rec" : tau_rec,
+#         "tau_pre" : tau_pre,
+#         "tau_post" : tau_post,
+        
+#         "tau_decay_AMPA" : tau_decay_AMPA,
+#         "tau_rise_AMPA" : tau_rise_AMPA,
+#         "tau_decay_NMDA" : tau_decay_NMDA,
+#         "tau_rise_NMDA" : tau_rise_NMDA,
+#         "tau_decay_GABA" : tau_decay_GABA,
+#         "tau_rise_GABA" : tau_rise_GABA 
+#         }
     
-        "tau_decay_AMPA" : tau_decay_AMPA,
-        "tau_rise_AMPA" : tau_rise_AMPA,
-        "tau_decay_NMDA" : tau_decay_NMDA,
-        "tau_rise_NMDA" : tau_rise_NMDA,
-        "tau_decay_GABA" : tau_decay_GABA,
-        "tau_rise_GABA" : tau_rise_GABA 
-        }
     
-    infer_names = ["gMax_AMPA", "gMax_NMDA", "gMax_GABA", "w_init_AMPA", "w_init_NMDA", "w_init_GABA",        
-        "e_init", "g_decay_init", "g_rise_init", "u_se", "tau_pre", "tau_post", "tau_rec", "tau_decay_AMPA",
-        "tau_rise_AMPA", "tau_decay_NMDA", "tau_rise_NMDA", "tau_decay_GABA", "tau_rise_GABA" ]
+#     infer_names = ["gMax_GABA", "e_init", "u_se",   
+#          "g_decay_init", "g_rise_init", "w_init",
+#          "tau_rec", "tau_pre", "tau_post", 
+#          "tau_decay_AMPA", "tau_rise_AMPA", 
+#          "tau_decay_NMDA", "tau_rise_NMDA", 
+#          "tau_decay_GABA", "tau_rise_GABA" ]
 
-    learning_rate_AMPA = 0.5 #----I made that up 
-    learning_rate_NMDA = 0.8 #----I made that up 
-    learning_rate_GABA = 0.5 #----I made that up 
+#     learning_rate_AMPA = 0.5 #----I made that up 
+#     learning_rate_NMDA = 0.5 #----I made that up 
+#     learning_rate_GABA = 0.5 #----I made that up 
 
-    past_pre = []
-    past_post = []
+#     past_pre = []
+#     past_post = []
     
-    #tau_pre, tau_post, tau_rec, tau_decay, tau_rise, u_se,  w, e, g_decay, g_rise,
-    #past_pre, past_post, learning_rate
-    AMPA_params = [tau_pre, tau_post, tau_rec, tau_decay_AMPA, tau_rise_AMPA, u_se, w_init_AMPA, 
-               e_init, g_decay_init, g_rise_init,
-               past_pre, past_post,
-               learning_rate_AMPA]
+#     #tau_pre, tau_post, tau_rec, tau_decay, tau_rise, u_se,  w, e, g_decay, g_rise,
+#     #past_pre, past_post, learning_rate
+#     AMPA_params = [tau_pre, tau_post, tau_rec, tau_decay_AMPA, tau_rise_AMPA, u_se, w_init_AMPA, 
+#                e_init, g_decay_init, g_rise_init,
+#                past_pre, past_post,
+#                learning_rate_AMPA]
 
-    NMDA_params = [tau_pre, tau_post, tau_rec, tau_decay_NMDA, tau_rise_NMDA, u_se, w_init_NMDA, 
-               e_init, g_decay_init, g_rise_init,
-               past_pre, past_post,
-               learning_rate_NMDA]
+#     NMDA_params = [tau_pre, tau_post, tau_rec, tau_decay_NMDA, tau_rise_NMDA, u_se, w_init_NMDA, 
+#                e_init, g_decay_init, g_rise_init,
+#                past_pre, past_post,
+#                learning_rate_NMDA]
 
-    GABA_params = [tau_pre, tau_post, tau_rec, tau_decay_GABA, tau_rise_GABA, u_se, w_init_GABA, 
-               e_init, g_decay_init, g_rise_init,
-               past_pre, past_post,
-               learning_rate_GABA]
+#     GABA_params = [tau_pre, tau_post, tau_rec, tau_decay_GABA, tau_rise_GABA, u_se, w_init_GABA, 
+#                e_init, g_decay_init, g_rise_init,
+#                past_pre, past_post,
+#                learning_rate_GABA]
     
+        
+#     @staticmethod
+#     def create_AMPA(Vm=None):
+#         return LigandGatedChannel(LigandGatedChannelFactory.gMax_AMPA, 
+#                                   LigandGatedChannelFactory.gP, 
+#                                   LigandGatedChannelFactory.rE_AMPA, 
+#                                   Vm, 
+#                                   LigandGatedChannelFactory.AMPA_params,
+#                                   "AMPA")
 
+#     @staticmethod
+#     def create_NMDA(Vm=None):
+#         return NMDA(LigandGatedChannelFactory.gMax_NMDA, 
+#                                   LigandGatedChannelFactory.gP, 
+#                                   LigandGatedChannelFactory.rE_NMDA, 
+#                                   Vm, 
+#                                   LigandGatedChannelFactory.NMDA_params,
+#                                   "NMDA")
 
-    @staticmethod
-    def create_AMPA(Vm=None):
-        return LigandGatedChannel(LigandGatedChannelFactory.gMax_AMPA, 
-                                  LigandGatedChannelFactory.gP, 
-                                  LigandGatedChannelFactory.rE_AMPA, 
-                                  Vm, 
-                                  LigandGatedChannelFactory.AMPA_params)
-
-    @staticmethod
-    def create_NMDA(Vm=None):
-        return NMDA(LigandGatedChannelFactory.gMax_NMDA, 
-                                  LigandGatedChannelFactory.gP, 
-                                  LigandGatedChannelFactory.rE_NMDA, 
-                                  Vm, 
-                                  LigandGatedChannelFactory.NMDA_params)
-
-    @staticmethod
-    def create_GABA(Vm=None):
-        return GABA(LigandGatedChannelFactory.gMax_GABA, 
-                                  LigandGatedChannelFactory.gP, 
-                                  LigandGatedChannelFactory.rE_GABA, 
-                                  Vm, 
-                                  LigandGatedChannelFactory.GABA_params)
+#     @staticmethod
+#     def create_GABA(Vm=None):
+#         return GABA(LigandGatedChannelFactory.gMax_GABA, 
+#                                   LigandGatedChannelFactory.gP, 
+#                                   LigandGatedChannelFactory.rE_GABA, 
+#                                   Vm, 
+#                                   LigandGatedChannelFactory.GABA_params,
+#                                   "GABA")
 
 
 

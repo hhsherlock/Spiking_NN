@@ -36,37 +36,28 @@ input_pattern = input_pattern[1]
 
 def run(infer_params):
     Receptors.LigandGatedChannelFactory.infer_params = infer_params
-
-    # with learning every group has more neurons 
+    
+    # Neuron: deltaTms, I, Vm, Name
     neuron_input_0 = Network.Neuron(deltaTms, 0, initial_Vm, "input_0")
     neuron_input_1 = Network.Neuron(deltaTms, 0, initial_Vm, "input_1")
     neuron_input_2 = Network.Neuron(deltaTms, 0, initial_Vm, "input_2")
 
-    neuron_excite_main_0 = Network.Neuron(deltaTms, 0, initial_Vm, "excite_main_0")
-    neuron_excite_main_1 = Network.Neuron(deltaTms, 0, initial_Vm, "excite_main_1")
-    neuron_excite_sub_0 = Network.Neuron(deltaTms, 0, initial_Vm, "excite_sub_0")
-    neuron_excite_sub_1 = Network.Neuron(deltaTms, 0, initial_Vm, "excite_sub_1")
+    neuron_excite_main = Network.Neuron(deltaTms, 0, initial_Vm, "excite_main")
+    neuron_excite_sub = Network.Neuron(deltaTms, 0, initial_Vm, "excite_sub")
 
-    neuron_inhibit_main_0 = Network.Neuron(deltaTms, 0, initial_Vm, "inhibit_main_0")
-    neuron_inhibit_main_1 = Network.Neuron(deltaTms, 0, initial_Vm, "inhibit_main_1")
-    neuron_inhibit_sub_0 = Network.Neuron(deltaTms, 0, initial_Vm, "inhibit_sub_0")
-    neuron_inhibit_sub_1 = Network.Neuron(deltaTms, 0, initial_Vm, "inhibit_sub_1")
+    neuron_inhibit_main = Network.Neuron(deltaTms, 0, initial_Vm, "inhibit_main")
+    neuron_inhibit_sub = Network.Neuron(deltaTms, 0, initial_Vm, "inhibit_sub")
 
     neuron_output = Network.Neuron(deltaTms, 0, initial_Vm, "output")
 
-    neurons = [neuron_input_0, neuron_input_1, neuron_input_2, 
-                neuron_excite_main_0, neuron_excite_main_1, 
-                neuron_excite_sub_0, neuron_excite_sub_1, 
-                neuron_inhibit_main_0, neuron_inhibit_main_1, 
-                neuron_inhibit_sub_0, neuron_inhibit_sub_1,
-                neuron_output]
+    neurons = [neuron_input_0, neuron_input_1, neuron_input_2, neuron_excite_main, neuron_excite_sub, 
+            neuron_inhibit_main, neuron_inhibit_sub, neuron_output]
 
     neuron_names = ["input_0", "input_1", "input_2",
-                    "excite_main_0", "excite_main_1", 
-                    "excite_sub_0", "excite_sub_1",
-                    "inhibit_main_0", "inhibit_main_1",
-                    "inhibit_sub_0", "inhibit_sub_1",
-                    "output"]
+                    "excite_main", "excite_sub", "inhibit_main", "inhibit_sub", "output"]
+
+
+
 
 
     # create synapse/connection (send neuron, receive neuron)
@@ -74,66 +65,35 @@ def run(infer_params):
 
 
 
+
     #*********************full layer***************************
     # ----------------first input layer------------------------
-    control.create_synapse(neuron_input_0, neuron_excite_main_0, "AMPA")
-    control.create_synapse(neuron_input_1, neuron_excite_main_0, "AMPA")
-    control.create_synapse(neuron_input_2, neuron_excite_main_0, "AMPA")
+    control.create_synapse(neuron_input_0, neuron_excite_main, "AMPA")
+    control.create_synapse(neuron_input_1, neuron_excite_main, "AMPA")
+    control.create_synapse(neuron_input_2, neuron_excite_main, "AMPA")
 
-    control.create_synapse(neuron_input_0, neuron_excite_main_1, "AMPA")
-    control.create_synapse(neuron_input_1, neuron_excite_main_1, "AMPA")
-    control.create_synapse(neuron_input_2, neuron_excite_main_1, "AMPA")
+    control.create_synapse(neuron_input_0, neuron_inhibit_main, "GABA")
+    control.create_synapse(neuron_input_1, neuron_inhibit_main, "GABA")
+    control.create_synapse(neuron_input_2, neuron_inhibit_main, "GABA")
 
-    control.create_synapse(neuron_input_0, neuron_inhibit_main_0, "GABA")
-    control.create_synapse(neuron_input_1, neuron_inhibit_main_0, "GABA")
-    control.create_synapse(neuron_input_2, neuron_inhibit_main_0, "GABA")
 
-    control.create_synapse(neuron_input_0, neuron_inhibit_main_1, "GABA")
-    control.create_synapse(neuron_input_1, neuron_inhibit_main_1, "GABA")
-    control.create_synapse(neuron_input_2, neuron_inhibit_main_1, "GABA")
 
     # ----------------self recurrent layer----------------
-    control.create_synapse(neuron_excite_main_0, neuron_excite_sub_0, "AMPA+NMDA")
-    control.create_synapse(neuron_excite_main_0, neuron_excite_sub_1, "AMPA+NMDA")
+    control.create_synapse(neuron_excite_main, neuron_excite_sub, "AMPA+NMDA")
+    control.create_synapse(neuron_excite_sub, neuron_excite_main, "AMPA+NMDA")
 
-    control.create_synapse(neuron_excite_main_1, neuron_excite_sub_0, "AMPA+NMDA")
-    control.create_synapse(neuron_excite_main_1, neuron_excite_sub_1, "AMPA+NMDA")
-
-    control.create_synapse(neuron_excite_sub_0, neuron_excite_main_0, "AMPA+NMDA")
-    control.create_synapse(neuron_excite_sub_0, neuron_excite_main_1, "AMPA+NMDA")
-
-    control.create_synapse(neuron_excite_sub_1, neuron_excite_main_0, "AMPA+NMDA")
-    control.create_synapse(neuron_excite_sub_1, neuron_excite_main_1, "AMPA+NMDA")
-        
-
-    control.create_synapse(neuron_inhibit_main_0, neuron_inhibit_sub_0, "GABA")
-    control.create_synapse(neuron_inhibit_main_0, neuron_inhibit_sub_1, "GABA")
-
-    control.create_synapse(neuron_inhibit_main_1, neuron_inhibit_sub_0, "GABA")
-    control.create_synapse(neuron_inhibit_main_1, neuron_inhibit_sub_1, "GABA")
-
-    control.create_synapse(neuron_inhibit_sub_0, neuron_inhibit_main_0, "GABA")
-    control.create_synapse(neuron_inhibit_sub_0, neuron_inhibit_main_1, "GABA")
-
-    control.create_synapse(neuron_inhibit_sub_1, neuron_inhibit_main_0, "GABA")
-    control.create_synapse(neuron_inhibit_sub_1, neuron_inhibit_main_1, "GABA")
+    control.create_synapse(neuron_inhibit_main, neuron_inhibit_sub, "GABA")
+    control.create_synapse(neuron_inhibit_sub, neuron_inhibit_main, "GABA")
 
     # --------------between excitatory and inhibitory----------------
-    control.create_synapse(neuron_excite_main_0, neuron_inhibit_main_0, "AMPA+NMDA")
-    control.create_synapse(neuron_excite_main_0, neuron_inhibit_main_1, "AMPA+NMDA")
+    control.create_synapse(neuron_excite_main, neuron_inhibit_main, "AMPA+NMDA")
+    control.create_synapse(neuron_inhibit_main, neuron_excite_main, "GABA")
 
-    control.create_synapse(neuron_excite_main_1, neuron_inhibit_main_0, "AMPA+NMDA")
-    control.create_synapse(neuron_excite_main_1, neuron_inhibit_main_1, "AMPA+NMDA")
-
-    control.create_synapse(neuron_inhibit_main_0, neuron_excite_main_0, "GABA")
-    control.create_synapse(neuron_inhibit_main_0, neuron_excite_main_1, "GABA")
-
-    control.create_synapse(neuron_inhibit_main_1, neuron_excite_main_0, "GABA")
-    control.create_synapse(neuron_inhibit_main_1, neuron_excite_main_1, "GABA")
 
     # ----------------output layer----------------------
-    control.create_synapse(neuron_excite_main_0, neuron_output, "AMPA")
-    control.create_synapse(neuron_excite_main_1, neuron_output, "AMPA")
+    control.create_synapse(neuron_excite_main, neuron_output, "AMPA")
+
+
 
     # recording arrays
     voltages = []
@@ -164,9 +124,9 @@ def run(infer_params):
             neuron.update()
             
             voltages_tstep.append(neuron.Vm)
-            # only want to record the two excite main neurons
-            # they are connected to the output neuron
-            if num_cycle == 3 or num_cycle == 4:
+            # # only want to record the two excite main neurons
+            # # they are connected to the output neuron
+            if num_cycle == 4:
                 currents_tstep.append(neuron.I)
             num_cycle += 1
             
