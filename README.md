@@ -3,17 +3,17 @@
 - 22.10.2024: Initial Commit
     yay
 
-- 30.10.2024: Added ligand gated receptors like AMPA
-    I chose random constants for the channel properties, the current goes instantly overflow. 
+# Current (until 15.01): 
+- The neurons and networks are working okay.
+- Ligand-gated and ion channels are added (should we add more or probably not)
 
-**HH_original.py**: the original code from https://github.com/swharden/pyHH.
+# Next Step:
+- Find parameters, with MCMC or with interactive plot, Q: what is a good firing pattern and does it differ with different types or functions of neurons.
+- Normalise weights
+- Q: should we find if the implemented equtaions are good or not?
+- Weight update rules, implement them biologically or mathmetically.
+- what kind of trials can we run?
+- how many neurons and layers should we have?
+- if we use large amount of neurons, can we do population distribution and try bayesian. Actually can we just prove it with simple model? how to add neuron activities? 
+- which above should we do first?
 
-**HH.py**: the new code I wrote with more structured classes and bug fixed. Except for the original Hodgkin Huxley model, I also added ligand gated channels like AMPA, GABA... NMDA behaves differently.
-
-**network.py**: ignore it as well, it is empty. I plan to add different kinds of neurons with different combinations with channels and receptors and connect them. 
-
-**run_original.ipynb**: HH_original classes run. 
-
-**run.ipynb**: HH classes run. 
-
-**test.ipynb**: ignore it, i use it for testing.
