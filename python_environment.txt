@@ -1,2 +1,2 @@
-source /home/yaning/Documents/python_env/new/bin/activate
+source /home/yaning/Documents/python_env/llm/bin/activate
 nohup bash run.sh > test.out 2>&1 &

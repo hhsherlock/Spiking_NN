@@ -26,10 +26,10 @@ class Neuron:
         self.incoming_synapses = []
         self.outgoing_synapses = []
         
-    
-        self._sodium_channel = Receptors.Voltage_Sodium(self.Vm)
-        self._potassium_channel = Receptors.Voltage_Potassium(self.Vm)
-        self._leaky_channel = Receptors.Voltage_Leak(self.Vm)
+        # # for threshold we don't need ion channels
+        # self._sodium_channel = Receptors.Voltage_Sodium(self.Vm)
+        # self._potassium_channel = Receptors.Voltage_Potassium(self.Vm)
+        # self._leaky_channel = Receptors.Voltage_Leak(self.Vm)
         
     @staticmethod
     def count_all_continuous_sequences(arr):
@@ -51,65 +51,28 @@ class Neuron:
     
     # voltage and ion channel currents update has to be here because it sums from all dendrites
     def update(self):
-        error_code = 0
+
         # Q: should i update voltage before the gP, do they make a difference?
         # update the ion channel voltage
-        self._sodium_channel.Vm = self.Vm
-        self._potassium_channel.Vm = self.Vm
-        self._leaky_channel.Vm = self.Vm
-        
-        try:
-            # ion channel currents
-            self._sodium_channel.update_gP(self.deltaTms)
-            self._potassium_channel.update_gP(self.deltaTms)
-            
-            # update the receptors gP in neuron
-            # cannot do it in synapse because the amount of updating will depend on the connections 
-            # but it shouldn't 
-            Ireceptors = 0
-            synapses = self.incoming_synapses
-            for synapse in synapses:
-                receptors = synapse.receptors
-                for receptor in receptors:
-                    receptor.Vm = self.Vm
-                    receptor.update_gP(synapse.state, self.deltaTms)
-                    Ireceptors += receptor.current()
+        # self._sodium_channel.Vm = self.Vm
+        # self._potassium_channel.Vm = self.Vm
+        # self._leaky_channel.Vm = self.Vm
+
+        Ireceptors = 0
+        synapses = self.incoming_synapses
+        for synapse in synapses:
+            receptors = synapse.receptors
+            for receptor in receptors:
+                receptor.Vm = self.Vm
+                receptor.update_gP(synapse.state, self.deltaTms)
+                Ireceptors += receptor.current()
                     
             
-            
-            # get the currents
-            Ina = self._sodium_channel.current()
-            Ik = self._potassium_channel.current()
-            Ileak = self._leaky_channel.current()
 
-            # not caring the ligand gated receptors for now
-
-            currents = {
-                "INa": Ina,
-                "IK": Ik,
-                "Ileak": Ileak,
-                "IReceptor": Ireceptors
-                # "Iampa": Iampa,
-                # "Inmda": Inmda,
-                # "Igaba": Igaba
-            }
-            # check for over or underflow
-            
-            for name, current in currents.items():
-                if current > 1e10:
-                    raise OverflowError(f"Overflowed: {name} = {current}")
-        except OverflowError as m:
-            # print(f"error: {m}")
-            # print("this line runs")
-            error_code += 1
-            
-
-        # add the ion channel currents
-        self.I = Ina + Ik + Ileak + Ireceptors
-        ion_I = Ina + Ik + Ileak
+        # add the ion channel currents, what about the ion channel currents
+        self.I = Ireceptors
         self.Vm += - self.deltaTms * self.I / self._Cm
 
-        return error_code, ion_I
 
     # when this neuron fires, send signal to the connected post synapses
     # this step is problematic because it only sends out signal when i am certain it fires 
