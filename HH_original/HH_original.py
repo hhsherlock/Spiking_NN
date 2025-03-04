@@ -23,8 +23,8 @@ class HHModel:
             self.state += deltaTms * (alphaState - betaState)
 
         def setInfiniteState(self):
-            print("this line runs")
-            print(self.alpha, self.beta)
+            # print("this line runs")
+            # print(self.alpha, self.beta)
             self.state = self.alpha / (self.alpha + self.beta)
 
     ENa, EK, EKleak = 115, -12, 10.6
@@ -39,7 +39,7 @@ class HHModel:
         self.UpdateGateTimeConstants(startingVoltage)
         self.m.setInfiniteState()
         self.n.setInfiniteState()
-        self.n.setInfiniteState() # ah a bug haha
+        self.h.setInfiniteState() # ah a bug haha
         self.na_currents = na_currents
         self.k_currents = k_currents
         self.leak_currents = leak_currents
@@ -63,6 +63,8 @@ class HHModel:
         Isum = stimulusCurrent - INa - IK - IKleak
         self.I = Isum
         self.Vm += deltaTms * Isum / self.Cm
+        # sign_array = [np.sign(INa), np.sign(IK), np.sign(IKleak)]
+        # return sign_array
 
     def UpdateGateStates(self, deltaTms):
         """calculate new channel open states using latest Vm"""
@@ -74,3 +76,5 @@ class HHModel:
         self.UpdateGateTimeConstants(self.Vm)
         self.UpdateCellVoltage(stimulusCurrent, deltaTms)
         self.UpdateGateStates(deltaTms)
+
+        # return sign_array
