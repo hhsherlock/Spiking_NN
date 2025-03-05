@@ -23,21 +23,14 @@ class Gate:
         self.beta = beta
         self.state = state
     
-    # state change is the function of time 
-    # basing on the alpha and beta
+
     def update(self, deltaTms):
-        # warnings.filterwarnings("error", category=RuntimeWarning)
-        # try:
         alphaState = self.alpha * (1-self.state)
         betaState = self.beta * self.state
         self.state += deltaTms * (alphaState - betaState)
-        # except RuntimeWarning as e:
-        #     print(f"test tes Caught a RuntimeWarning as an exception: {e}")
-    
-    # def update_alpha_beta(self):
+
 
     def initialise(self):
-        # print("this line runs")
         self.state = self.alpha / (self.alpha + self.beta)
 
 
@@ -65,12 +58,12 @@ class VoltageGatedChannel(Channel):
         self.n = Gate(0,0,0)
         self.h = Gate(0,0,0)
         # this deltaTms should it be the same as the experiment?
+        # self.update_alpha_beta()
         self.update_gP(0.05)
         self.m.initialise()
         self.n.initialise()
         self.h.initialise()
         # print(self.m.alpha)
-
 
 
     def update_gP(self, deltaTms):
@@ -101,6 +94,7 @@ class Voltage_Sodium(VoltageGatedChannel):
     def update_gP(self, deltaTms):
         super().update_gP(deltaTms)
         self.gP = np.power(self.m.state, 3) * self.h.state
+    
 
 class Voltage_Potassium(VoltageGatedChannel):
     gMax_K = 36
@@ -113,6 +107,7 @@ class Voltage_Potassium(VoltageGatedChannel):
     def update_gP(self, deltaTms):
         super().update_gP(deltaTms)
         self.gP = np.power(self.n.state, 4)
+    
 
 class Voltage_Leak(VoltageGatedChannel):
     gMax_leaky = 0.3
@@ -224,11 +219,6 @@ class NMDA(LigandGatedChannel):
         super().update_gP(state, deltaTms)
         self.gP = 1/(1+self._mg*np.exp(-0.062*self.Vm)/3.57) * self.gP
 
-
-    # def update_gP(self, t_step, deltaTms):
-    #     super().update_gP(t_step, deltaTms)
-    #     add_mg = 1/(1+mg*np.exp(-0.062*self.Vm)/3.57) * self.gP
-    #     return add_mg
 
 class GABA(LigandGatedChannel):
     def current(self):

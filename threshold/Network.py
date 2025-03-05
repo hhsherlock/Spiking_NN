@@ -58,7 +58,7 @@ class Neuron:
     def update(self):
         # # if the neuron is not firing, update everything
         # if self.fire_state == 0:
-        print("this line runs")
+        # print("this line runs")
         # Q: should i update voltage before the gP, do they make a difference?
         # update the ion channel voltage
         self._sodium_channel.Vm = self.Vm
@@ -66,42 +66,43 @@ class Neuron:
         self._leaky_channel.Vm = self.Vm
 
         # # ion channel currents
+        # leaky channel does not change with state
         self._sodium_channel.update_gP(self.deltaTms)
         self._potassium_channel.update_gP(self.deltaTms)
         
         # update the receptors gP in neuron
         # cannot do it in synapse because the amount of updating will depend on the connections 
         # but it shouldn't 
-        # Ireceptors = 0
-        # # only add receptor currents if the neuron is not firing
+        Ireceptors = 0
+        # only add receptor currents if the neuron is not firing
         # if self.Vm <= self._threshold:
-        #     synapses = self.incoming_synapses
-        #     for synapse in synapses:
-        #         receptors = synapse.receptors
-        #         for receptor in receptors:
-        #             receptor.Vm = self.Vm
-        #             receptor.update_gP(synapse.state, self.deltaTms)
-        #             Ireceptors += receptor.current()
-                
+        synapses = self.incoming_synapses
+        for synapse in synapses:
+            receptors = synapse.receptors
+            for receptor in receptors:
+                receptor.Vm = self.Vm
+                receptor.update_gP(synapse.state, self.deltaTms)
+                Ireceptors += receptor.current()
+        if Ireceptors > 0:
+            Ireceptors = 0
 
         Ina = self._sodium_channel.current()
         Ik = self._potassium_channel.current()
         Ileak = self._leaky_channel.current()
 
-        print("Ina")
-        print(np.sign(Ina))
-        print("Ik")
-        print(np.sign(Ik))
-        print("Ileak")
-        print(np.sign(Ileak))
+        # print("Ina")
+        # print(np.sign(Ina))
+        # print("Ik")
+        # print(np.sign(Ik))
+        # print("Ileak")
+        # print(np.sign(Ileak))
         # print("Ireceptor")
         # print(np.sign(Ireceptors))
 
-        # self.I = Ina + Ik + Ileak + Ireceptors
-        Isum = Ina - Ik - Ileak # + Ireceptors
-        # ion_I = Ina + Ik + Ileak
-        self.I = Isum
-        self.Vm += - self.deltaTms * self.I / self._Cm
+        # be very careful with the signs of each current
+        # the Ik should be negative in the next formula the rest positive
+        self.I = - Ina - Ik - Ileak - Ireceptors
+        self.Vm += self.deltaTms * self.I / self._Cm
     
         # # the fire state is 1 (fires) then only update the receptors
         # else:
@@ -121,7 +122,7 @@ class Neuron:
         
         
 
-        # return ion_I, Ireceptors
+        return Ireceptors, Ina
 
     # when this neuron fires, send signal to the connected post synapses
     # this step is problematic because it only sends out signal when i am certain it fires 

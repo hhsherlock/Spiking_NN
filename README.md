@@ -20,3 +20,11 @@
 - what is the goal? do we do benchmarkings with different dataset like computer science with the old trials OR we do behavior science with population firing.
 - should we do more time serial dataset training (because that's what SNN is good at)
 
+# Mar 2025
+Adding threshold is a must, because without it if the neuron receives too many ampa current from presynapses the refractory period will be gone like this graph. ![too many ampa](plots/many_ampa.png) Same thing also happens if there is only ion channels. ![too big current](plots/big_input_current.png)
+
+It is the AMPA receptor injects current that makes the membrane potential to reach the ion channel firing level. So the threshold should be -58 mV.
+
+When should the firing pattern be the same? The absolute and relative refractory period is very vague, i guess it depends on the ability of sodium channel recovery ability and each person varies. Maybe we can try to see which one performs the best with some training data. 
+
+The ampa current is around 10 each and sodium channel during action potential is around 800. If there are 10 presynapse ampa connected to the same neuron, it can have an influence on the action potential (makes the maximum increase from normal 40 to 60 but that's it). If it is not on the same scale as the sodium 800 current then it does not matter actually. 
