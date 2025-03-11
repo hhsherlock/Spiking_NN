@@ -28,3 +28,6 @@ It is the AMPA receptor injects current that makes the membrane potential to rea
 When should the firing pattern be the same? The absolute and relative refractory period is very vague, i guess it depends on the ability of sodium channel recovery ability and each person varies. Maybe we can try to see which one performs the best with some training data. 
 
 The ampa current is around 10 each and sodium channel during action potential is around 800. If there are 10 presynapse ampa connected to the same neuron, it can have an influence on the action potential (makes the maximum increase from normal 40 to 60 but that's it). If it is not on the same scale as the sodium 800 current then it does not matter actually. 
+
+# 11 Mar 2025
+After detach the ampa current right after reaching threshold -58(12)mV, there are small bumps which are not really fired. Like this ![small bumps](plots/threshold_small_nump.png). The reason is the states of the gates change with a delay. ![state change](plots/states_change.png). So when one action potential finishes, the state is not fully recovered and can influence the next firing threshold. 

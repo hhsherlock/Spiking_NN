@@ -25,7 +25,7 @@ class Neuron:
         self.Vm = Vm
         self.Name = Name  
         self.fire_state = 0
-        # self.fire_count = 0
+        self.fire_count = 0
         self.fire_tstep = []  
 
         self.incoming_synapses = []
@@ -36,46 +36,20 @@ class Neuron:
         self._potassium_channel = Receptors.Voltage_Potassium(self.Vm)
         self._leaky_channel = Receptors.Voltage_Leak(self.Vm)
         
-    @staticmethod
-    def count_all_continuous_sequences(arr):
-        if not arr:
-            return [0]
-
-        # Sort the array to ensure it's in order
-        arr = sorted(arr)
-
-        new_arr = []
-        new_arr.append(arr[0])
-        # Iterate through the array
-        for i in range(1, len(arr)):
-            if arr[i] != arr[i - 1] + 1:
-                # A break in continuity means a new sequence
-                new_arr.append(arr[i])
-
-        return new_arr
     
-    # voltage and ion channel currents update has to be here because it sums from all dendrites
+ 
     def update(self):
-        # # if the neuron is not firing, update everything
-        # if self.fire_state == 0:
-        # print("this line runs")
-        # Q: should i update voltage before the gP, do they make a difference?
-        # update the ion channel voltage
+
+        # update ion channels
         self._sodium_channel.Vm = self.Vm
         self._potassium_channel.Vm = self.Vm
         self._leaky_channel.Vm = self.Vm
 
-        # # ion channel currents
-        # leaky channel does not change with state
         self._sodium_channel.update_gP(self.deltaTms)
         self._potassium_channel.update_gP(self.deltaTms)
         
-        # update the receptors gP in neuron
-        # cannot do it in synapse because the amount of updating will depend on the connections 
-        # but it shouldn't 
+        # update receptors
         Ireceptors = 0
-        # only add receptor currents if the neuron is not firing
-        # if self.Vm <= self._threshold:
         synapses = self.incoming_synapses
         for synapse in synapses:
             receptors = synapse.receptors
@@ -83,42 +57,30 @@ class Neuron:
                 receptor.Vm = self.Vm
                 receptor.update_gP(synapse.state, self.deltaTms)
                 Ireceptors += receptor.current()
-        if Ireceptors > 0:
-            Ireceptors = 0
+        
+        # receptor current should always be negative
+        # if fires then block ampa receptor input
+        if Ireceptors > 0 or self.fire_state == 1:
+            # if self.fire_count > 20:
+            Ireceptors = 0 
 
         Ina = self._sodium_channel.current()
         Ik = self._potassium_channel.current()
         Ileak = self._leaky_channel.current()
 
-        # print("Ina")
-        # print(np.sign(Ina))
-        # print("Ik")
-        # print(np.sign(Ik))
-        # print("Ileak")
-        # print(np.sign(Ileak))
-        # print("Ireceptor")
-        # print(np.sign(Ireceptors))
 
-        # be very careful with the signs of each current
-        # the Ik should be negative in the next formula the rest positive
         self.I = - Ina - Ik - Ileak - Ireceptors
         self.Vm += self.deltaTms * self.I / self._Cm
-    
-        # # the fire state is 1 (fires) then only update the receptors
-        # else:
-        #     synapses = self.incoming_synapses
-        #     for synapse in synapses:
-        #         receptors = synapse.receptors
-        #         for receptor in receptors:
-        #             # have to update the known voltages because of this
-        #             receptor.Vm = self.Vm
-        #             receptor.update_gP(synapse.state, self.deltaTms)
 
-        # # check if it should fire
-        # if self.Vm >= self.fire_threshold and self.fire_count <= 61:
-        #     self.fire_state = 1
-        #     self.fire_count += 1
-        #     self.Vm = 
+        if self.fire_count == 0:
+            if self.Vm >= self._threshold:
+                self.fire_state = 1
+                self.fire_count += 1
+        elif self.fire_count > 70:
+            self.fire_state = 0
+            self.fire_count = 0
+        else:
+            self.fire_count += 1
         
         
 
@@ -153,7 +115,7 @@ class Neuron:
     def sending_signal(self):
         for synapse in self.outgoing_synapses:
             random_value = random.uniform(0, 1)
-            if random_value >= 0.4:
+            if random_value >= 0:
                 synapse.state = 1
     
     def erase(self, initial_Vm):
