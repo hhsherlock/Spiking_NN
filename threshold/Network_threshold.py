@@ -15,14 +15,17 @@ import random
 #--------------------------------Neuron--------------------------------------
 class Neuron:
     _Cm = 1
+    # choice of below two parameters see plots 
+    _threshold = 12
+    _duration = 61
 
     def __init__(self, deltaTms, I, Vm, Name):
         self.deltaTms = deltaTms
         self.I = I
         self.Vm = Vm
         self.Name = Name  
-        # fire state is used for convey to post-synapse
         self.fire_state = 0
+        self.fire_count = 0
         self.fire_tstep = []  
 
         self.incoming_synapses = []
@@ -56,7 +59,9 @@ class Neuron:
                 Ireceptors += receptor.current()
         
         # receptor current should always be negative
-        if Ireceptors > 0:
+        # if fires then block ampa receptor input
+        if Ireceptors > 0 or self.fire_state == 1:
+            # if self.fire_count > 20:
             Ireceptors = 0 
 
         Ina = self._sodium_channel.current()
@@ -64,9 +69,20 @@ class Neuron:
         Ileak = self._leaky_channel.current()
 
 
-        self.I = - Ina - Ik - Ileak - Ireceptors*10000
+        self.I = - Ina - Ik - Ileak - Ireceptors
         self.Vm += self.deltaTms * self.I / self._Cm
-          
+
+        if self.fire_count == 0:
+            if self.Vm >= self._threshold:
+                self.fire_state = 1
+                self.fire_count += 1
+        elif self.fire_count > 70:
+            self.fire_state = 0
+            self.fire_count = 0
+        else:
+            self.fire_count += 1
+        
+        
 
         return Ireceptors, Ina
 

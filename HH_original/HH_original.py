@@ -65,6 +65,7 @@ class HHModel:
         self.Vm += deltaTms * Isum / self.Cm
         # sign_array = [np.sign(INa), np.sign(IK), np.sign(IKleak)]
         # return sign_array
+        return INa
 
     def UpdateGateStates(self, deltaTms):
         """calculate new channel open states using latest Vm"""
@@ -74,7 +75,7 @@ class HHModel:
 
     def Iterate(self, stimulusCurrent=0, deltaTms=0.05):
         self.UpdateGateTimeConstants(self.Vm)
-        self.UpdateCellVoltage(stimulusCurrent, deltaTms)
+        INa = self.UpdateCellVoltage(stimulusCurrent, deltaTms)
         self.UpdateGateStates(deltaTms)
 
-        # return sign_array
+        return INa
