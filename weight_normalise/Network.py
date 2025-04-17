@@ -72,9 +72,9 @@ class Neuron:
                 for receptor in synapse.receptors:
                     if receptor.label == "GABA":
                         # or should i change it proportional
-                        receptor.w = receptor.w*1.1
+                        receptor.w = receptor.w*1.5
                     else:
-                        receptor.w = receptor.w*0.9
+                        receptor.w = receptor.w*0.5
 
 
         Ina = self._sodium_channel.current()
