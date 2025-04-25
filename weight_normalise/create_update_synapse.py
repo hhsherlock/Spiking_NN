@@ -17,14 +17,14 @@ def create_synapse(send_neuron, receive_neuron, type):
         
     elif type == "AMPA+NMDA":
         # Receptors.LigandGatedChannelFactory.set_params()
-        ampa_receptor = Receptors.AMPA(0.072, 1, -70, 1.35, 0.9, 1, 1, 1, 12, 10, 20, 10, 35, 7, 0.7, "AMPA")
-        nmda_receptor = Receptors.NMDA(0.0012, 1, -70, 1.35, 0.9, 1, 1, 1, 13, 10, 20, 10, 15, 7, 0.7, "NMDA")
+        ampa_receptor = Receptors.AMPA(0.072, 1, 70, 1.35, 0.9, 1, 1, 1, 12, 10, 20, 10, 35, 7, 0.7, "AMPA")
+        nmda_receptor = Receptors.NMDA(0.0012, 1, 70, 1.35, 0.9, 1, 1, 1, 13, 10, 20, 10, 15, 7, 0.7, "NMDA")
         synapse = Network.Synapse(0.05, 0, send_neuron, receive_neuron, ampa_receptor, nmda_receptor)
     
     elif type == "GABA":
         # Receptors.LigandGatedChannelFactory.set_params()
         # print(Receptors.LigandGatedChannelFactory.w_init_GABA)
-        gaba_receptor = Receptors.GABA(0.004, 1, -140, 1.35, 0.9, 1, 1, 1, 12, 10, 20, 10, 20, 7, 0.7, "GABA")
+        gaba_receptor = Receptors.GABA(0.004, 1, 140, 1.35, 0.9, 1, 1, 1, 12, 10, 20, 10, 20, 7, 0.7, "GABA")
         synapse = Network.Synapse(0.05, 0, send_neuron, receive_neuron, gaba_receptor)
 
     send_neuron.outgoing_synapses.append(synapse)

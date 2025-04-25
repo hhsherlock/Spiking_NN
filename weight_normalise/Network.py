@@ -72,9 +72,9 @@ class Neuron:
                 for receptor in synapse.receptors:
                     if receptor.label == "GABA":
                         # or should i change it proportional
-                        receptor.w = receptor.w*1.5
+                        receptor.w = receptor.w*1.3
                     else:
-                        receptor.w = receptor.w*0.5
+                        receptor.w = receptor.w*0.7
 
 
         Ina = self._sodium_channel.current()
@@ -103,13 +103,34 @@ class Neuron:
             fire = True
         return fire
 
-    def update_weights(self, t):
+    # two ways to update weight/learn
+    def update_weights_hebbian(self, t):
         for synapse in self.incoming_synapses:
+            #Q: should it be the whole process or a time frame
             neuron_past_pre = count_all_continuous_sequences(synapse.send_neuron.fire_tstep)
             neuron_past_post = count_all_continuous_sequences(self.fire_tstep)
             for receptor in synapse.receptors:
-                receptor.update_w(t, neuron_past_pre, neuron_past_post)
-                    
+                receptor.update_w_hebbian(t, neuron_past_pre, neuron_past_post)
+
+    def update_weights_twenty(self, t):
+        #[t-400:t+401]
+
+        for synapse in self.incoming_synapses:
+            pre_neuron = count_all_continuous_sequences(synapse.send_neuron.fire_tstep[t-400:])
+            if pre_neuron:
+                for receptor in synapse.receptors:
+                    receptor.update_w_twenty(t, pre_neuron, True)
+        
+        for synapse in self.outgoing_synapses:
+            post_neuron = count_all_continuous_sequences(synapse.receive_neuron.fire_tstep[t-400:])
+            if post_neuron:
+                for receptor in synapse.receptors:
+                    receptor.update_w_twenty(t, post_neuron, False)
+
+            
+
+
+
 
 
 

@@ -162,9 +162,16 @@ class LigandGatedChannel(Channel):
         return integrate_result
     
     # ----------w(m,n) synapse weight----------------
-    def _w_update(self, past_pre, past_post, t_step):
+    def _w_update_hebbian(self, past_pre, past_post, t_step):
         return self.learning_rate*self._integrate(
             past_pre, t_step, self.tau_pre)*self._integrate(past_post, t_step, self.tau_post)
+    
+    # i do not know what time constant this should be
+    def _w_update_twenty(self, the_other_neuron, t_step):
+        temp = self.learning_rate*self._integrate(
+            the_other_neuron, t_step, self.tau_pre
+        )
+        return temp
     
     #---------e(m,n) synaptic efficacy---------------
     def _e_update(self, e, etsp):
@@ -204,10 +211,17 @@ class LigandGatedChannel(Channel):
         self.gP = self.g_rise - self.g_decay
 
     
-    def update_w(self, t_step, neuron_past_pre, neuron_past_post):
-        # when the post neuron fires, add the time step to past_post
-        self.w += self._w_update(neuron_past_pre, neuron_past_post, t_step)
+    def update_w_hebbian(self, t_step, neuron_past_pre, neuron_past_post):
+        self.w += self._w_update_hebbian(neuron_past_pre, neuron_past_post, t_step)
 
+    def update_w_twenty(self, t_step, the_other_neuron, pre_or_post):
+        if pre_or_post:
+            self.w += self._w_update_twenty(the_other_neuron, t_step)
+        else:
+            self.w -= self._w_update_twenty(the_other_neuron, t_step)
+            if self.w < 0:
+                self.w = 0
+            
 class AMPA(LigandGatedChannel):
     pass
         
