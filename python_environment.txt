@@ -1,2 +1,3 @@
 source /home/yaning/Documents/python_env/llm/bin/activate
+conda activate spike
 nohup bash run.sh > test.out 2>&1 &
