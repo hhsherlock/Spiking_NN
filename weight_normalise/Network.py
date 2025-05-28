@@ -20,11 +20,11 @@ class Neuron:
     _w_increase = 10
     _w_decrease = 10
 
-    def __init__(self, deltaTms, I, Vm, Name):
+    def __init__(self, id, deltaTms=0.05, I=0, Vm=1.3458754117369027):
         self.deltaTms = deltaTms
         self.I = I
-        self.Vm = Vm
-        self.Name = Name  
+        self.Vm = Vm 
+        self.id = id
 
         self.num = 0
 
@@ -64,6 +64,7 @@ class Neuron:
         if Ireceptors > 0:
             Ireceptors = 0 
         
+        # normalisation
         # if the receptor current is too big 
         # decrease the ampa and nmda weight and increase gaba weight 
         if Ireceptors <= self._current_threshold:
@@ -114,7 +115,7 @@ class Neuron:
 
     def update_weights_twenty(self, t):
         #[t-400:t+401]
-
+        # below update one synapse twice (need to fix it)!!!!!!!!!!!!!!!!!
         for synapse in self.incoming_synapses:
             pre_neuron = count_all_continuous_sequences(synapse.send_neuron.fire_tstep[t-400:])
             if pre_neuron:
