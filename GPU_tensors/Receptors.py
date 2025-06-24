@@ -76,7 +76,7 @@ class VoltageGatedChannel(Channel):
         self.h.alpha = .07*np.exp(-self.Vm/20)
         self.h.beta = 1/(np.exp((30-self.Vm)/10)+1)
 
-        # update the states
+        # update the states 
         self.m.update(deltaTms)
         self.n.update(deltaTms)
         self.h.update(deltaTms)
