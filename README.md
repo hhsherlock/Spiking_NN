@@ -1,5 +1,6 @@
 ## Spiking Neural Network
 
+The main structure of the model: ![short_E_long_I](plots/short_E_long_I.png)
 - 22.10.2024: Initial Commit
     yay
 
