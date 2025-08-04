@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Spiking Neural Network Visualization</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        .neuron { stroke: #000; }
+        .firing { fill: red; }
+        .silent { fill: grey; }
+        .layer0 { stroke: blue; }
+        .layer1 { stroke: green; }
+        .layer2 { stroke: orange; }
+        .layer3 { stroke: purple; }
+    </style>
+</head>
+<body>
+    <svg id="canvas" width="2000" height="1500"></svg>
+
+    <script>
+    const svg = d3.select("#canvas");
+    const socket = new WebSocket("ws://localhost:8000/ws");
+    let neurons = [];
+    let currentStates = [];
+
+    socket.onmessage = function(event) {
+        const data = JSON.parse(event.data);
+        if (data.neurons) {
+            neurons = data.neurons;
+            currentStates = Array(neurons.length).fill(0);  // Init all to silent
+            svg.selectAll("circle")
+                .data(neurons)
+                .enter()
+                .append("circle")
+                .attr("cx", d => d.x)
+                .attr("cy", d => d.y)
+                .attr("r", 10)
+                .attr("class", d => `neuron silent layer${d.layer}`);
+        } else if (data.states) {
+            // Smart diff update:
+            data.states.forEach((state, i) => {
+                if (state !== currentStates[i]) {
+                    // State changed, update class
+                    d3.select(svg.selectAll("circle").nodes()[i])
+                        .attr("class", `neuron ${state ? 'firing' : 'silent'} layer${neurons[i].layer}`);
+                    currentStates[i] = state;  // Update local state
+                }
+            });
+        }
+    };
+    </script>
+</body>
+</html>
+
