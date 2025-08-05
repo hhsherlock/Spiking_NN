@@ -7,7 +7,7 @@
     <style>
         .neuron { stroke: #000; }
         .firing { fill: red; }
-        .silent { fill: grey; }
+        .silent { fill: rgb(236, 234, 234); }
         .layer0 { stroke: blue; }
         .layer1 { stroke: green; }
         .layer2 { stroke: orange; }
@@ -15,7 +15,7 @@
     </style>
 </head>
 <body>
-    <svg id="canvas" width="2000" height="1500"></svg>
+    <svg id="canvas" width="3000" height="1500"></svg>
 
     <script>
     const svg = d3.select("#canvas");
@@ -44,6 +44,7 @@
                     d3.select(svg.selectAll("circle").nodes()[i])
                         .attr("class", `neuron ${state ? 'firing' : 'silent'} layer${neurons[i].layer}`);
                     currentStates[i] = state;  // Update local state
+                    console.log("changed!")
                 }
             });
         }

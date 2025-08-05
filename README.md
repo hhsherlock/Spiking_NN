@@ -4,6 +4,7 @@ The main structure of the model: ![short_E_long_I](plots/short_E_long_I.png)
 - 22.10.2024: Initial Commit
     yay
 
+(This documentation is a disaster, I know T.T) 
 # Current (until 15.01): 
 - The neurons and networks are working okay.
 - Ligand-gated and ion channels are added (should we add more or probably not)
