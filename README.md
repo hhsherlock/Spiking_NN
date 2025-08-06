@@ -1,6 +1,8 @@
 ## Spiking Neural Network
 
 The main structure of the model: ![short_E_long_I](plots/short_E_long_I.png)
+
+This project is based on the paper by Michler, Eckhorn and Wachtler (https://pubmed.ncbi.nlm.nih.gov/19494190/)
 - 22.10.2024: Initial Commit
     yay
 
