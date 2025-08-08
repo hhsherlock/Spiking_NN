@@ -1,42 +1,20 @@
-from fastapi import FastAPI, WebSocket
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
 import asyncio
-import numpy as np
-import pickle
-import torch
+from pydantic import BaseModel
+from starlette.concurrency import run_in_threadpool
+import uvicorn
+
+from calculation import calculation_function
 
 app = FastAPI()
 
-In_fires = torch.zeros((6000,10,10,8))
-E_fires = torch.zeros((6000,20,20))
-I_fires = torch.zeros((6000,4,4))
-Out_fires = torch.zeros((6000,5,5))
+# data_queue = asyncio.Queue()
+data_event = asyncio.Event()
+fire_data = None
+background_tasks = []
 
-
-@app.on_event("startup")
-async def load_data():
-    global In_fires, E_fires, I_fires, Out_fires
-
-    # simulate loading large dataset asynchronously
-    import asyncio
-    await asyncio.sleep(0)  # let event loop run (non-blocking)
-    
-    # your actual loading code here
-    with open('/home/yaning/Documents/large_files/fires.pkl', 'rb') as f:
-        import pickle
-        data = pickle.load(f)
-
-        In_fires = data["In_fires"]
-        E_fires = data["E_fires"]
-        I_fires = data["I_fires"]
-        Out_fires = data["Out_fires"]
-
-
-
-
-
-
-
+#---------------------neuron positions on page---------------------------------------------
 neuron_positions = []
 spacing = 40
 left_gap = 100
@@ -45,8 +23,7 @@ layer_id = 0
 
 
 # Layer 1: 10x10 grid with 8 neurons arranged inside each cell (2x4 layout)
-grid_W, grid_H, neurons_per_cell = In_fires.shape[1:]
-# grid_W, grid_H, neurons_per_cell = 10,10,8
+grid_W, grid_H, neurons_per_cell = 10,10,8
 
 inner_layout = [(i % 2, i // 2) for i in range(neurons_per_cell)]  # 2 columns x 4 rows
 
@@ -63,8 +40,7 @@ for i in range(grid_H):
 layer_id += 1
 
 # Layer 2: 20x20 grid
-grid_W, grid_H = E_fires.shape[1:]
-# grid_W, grid_H = 20,20
+grid_W, grid_H = 20,20
 for i in range(grid_H):
     for j in range(grid_W):
         neuron_positions.append({
@@ -75,8 +51,7 @@ for i in range(grid_H):
 layer_id += 1
 
 # Layer 3: 4x4 grid
-grid_W, grid_H = I_fires.shape[1:]
-# grid_W, grid_H = 4,4
+grid_W, grid_H = 4,4
 for i in range(grid_H):
     for j in range(grid_W):
         neuron_positions.append({
@@ -87,8 +62,7 @@ for i in range(grid_H):
 layer_id += 1
 
 # Layer 4: 5x5 grid
-grid_W, grid_H = Out_fires.shape[1:]
-# grid_W, grid_H = 5,5
+grid_W, grid_H = 5,5
 for i in range(grid_H):
     for j in range(grid_W):
         neuron_positions.append({
@@ -98,8 +72,8 @@ for i in range(grid_H):
         })
 layer_id += 1
 
-# firing states
-T = E_fires.shape[0]
+#-------------------------------------------------------------------------------------
+
 
 
 @app.get("/")
@@ -107,11 +81,43 @@ async def get():
     with open("index.html") as f:
         return HTMLResponse(f.read())
 
+class Params(BaseModel):
+    u_se_ampa: float
+    u_se_nmda: float
+    u_se_gaba: float
+    tau_rec_ampa: float
+    tau_rec_nmda: float
+    tau_rec_gaba: float
+    tau_rise_ampa: float
+    tau_rise_nmda: float
+    tau_rise_gaba: float
+    learning_rate: float
+    weight_scale: float
+
+@app.post("/input_params")
+async def get_params(data: Params):
+    global fire_data
+
+    print(data)
+    fire_data = await run_in_threadpool(calculation_function, data)
+
+    data_event.set()
+    data_event.clear()
+
+    return "finish computing"
+
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
+    await data_event.wait()
+    
+    In_fires = fire_data["In_fires"]
+    E_fires = fire_data["E_fires"]
+    I_fires = fire_data["I_fires"]
+    Out_fires = fire_data["Out_fires"]
     await websocket.send_json({"neurons": neuron_positions})
-    for t in range(T):
+    for t in range(In_fires.shape[0]):
         In_states = In_fires[t].view(-1).tolist()
         E_states = E_fires[t].view(-1).tolist()
         I_states = I_fires[t].view(-1).tolist()
@@ -119,5 +125,13 @@ async def websocket_endpoint(websocket: WebSocket):
         states = In_states + E_states + I_states + Out_states
 
         await websocket.send_json({"frame": t, "states": states})
-        await asyncio.sleep(0.005)  # 20 FPS
+        # await asyncio.sleep(0.005)  # 20 FPS
     await websocket.close()
+
+import sys
+
+@app.get("/shutdown")
+async def shutdown():
+
+    
+    return {"message": "Shut down tasks"}
