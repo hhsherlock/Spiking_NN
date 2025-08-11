@@ -20,6 +20,9 @@ def calculation_function(params):
     with open(path + "large_files/fire_data_10p_8f_non_zero.pkl", "rb") as f:
         fire_data = pickle.load(f)
 
+    # for a quicker testing
+    fire_data = fire_data[...,:3000]
+
     fire_data = torch.tensor(fire_data, device=device).float()
 
 
@@ -39,9 +42,14 @@ def calculation_function(params):
 
     # siemens unit n_s
     min_current = 0
-    gMax_AMPA = 0.72
-    gMax_NMDA = 1.2
-    gMax_GABA = 0.04
+    gMax_AMPA = 0.0072
+    gMax_NMDA = 0.000012
+    gMax_GABA = 0.0004
+
+    # # below are from the book
+    # gMax_AMPA = 0.72
+    # gMax_NMDA = 1.2
+    # gMax_GABA = 0.04
 
     rE_AMPA = 70
     rE_NMDA = 70
@@ -429,10 +437,16 @@ def calculation_function(params):
     Out_fires = torch.empty((pointCount, Out_num, Out_num), device=device)
 
 
-    for t in tqdm(range(pointCount)):
+    for t in range(pointCount):
+        if t % 1000 == 0:  # every 50 steps
+            print(f"Progress: {t}/{pointCount} ({100*t/pointCount:.1f}%)")
         # check mp and which fires then change connected layer activeness
         # Input to E
         In_fire = one_pic[:, :, :, t]
+
+        if E_mp.isnan().any():
+            print("oops")
+            break
 
         
         E_fire = check_fire(E_mp)
@@ -498,7 +512,7 @@ def calculation_function(params):
         'Out_fires': Out_fires
     }
 
-    with open(path + 'large_files/fires_new.pkl', 'wb') as f:
-        pickle.dump(data, f)
+    # with open(path + 'large_files/fires_new.pkl', 'wb') as f:
+    #     pickle.dump(data, f)
     
     return data

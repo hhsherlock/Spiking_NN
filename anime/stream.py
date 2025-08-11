@@ -3,7 +3,6 @@ from fastapi.responses import HTMLResponse
 import asyncio
 from pydantic import BaseModel
 from starlette.concurrency import run_in_threadpool
-import uvicorn
 
 from calculation import calculation_function
 
@@ -11,6 +10,8 @@ app = FastAPI()
 
 # data_queue = asyncio.Queue()
 data_event = asyncio.Event()
+shutdown_event = asyncio.Event()
+
 fire_data = None
 background_tasks = []
 
@@ -102,7 +103,7 @@ async def get_params(data: Params):
     fire_data = await run_in_threadpool(calculation_function, data)
 
     data_event.set()
-    data_event.clear()
+    
 
     return "finish computing"
 
@@ -110,28 +111,40 @@ async def get_params(data: Params):
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
-    await data_event.wait()
-    
-    In_fires = fire_data["In_fires"]
-    E_fires = fire_data["E_fires"]
-    I_fires = fire_data["I_fires"]
-    Out_fires = fire_data["Out_fires"]
-    await websocket.send_json({"neurons": neuron_positions})
-    for t in range(In_fires.shape[0]):
-        In_states = In_fires[t].view(-1).tolist()
-        E_states = E_fires[t].view(-1).tolist()
-        I_states = I_fires[t].view(-1).tolist()
-        Out_states = Out_fires[t].view(-1).tolist()
-        states = In_states + E_states + I_states + Out_states
 
-        await websocket.send_json({"frame": t, "states": states})
-        # await asyncio.sleep(0.005)  # 20 FPS
-    await websocket.close()
 
-import sys
+    while True:
+        await asyncio.wait(
+            [data_event.wait(), shutdown_event.wait()],
+            return_when=asyncio.FIRST_COMPLETED,
+        )
 
-@app.get("/shutdown")
+        # If shutdown triggered before data_event, exit early
+        if shutdown_event.is_set():
+            await websocket.close()
+            break
+        
+
+        In_fires = fire_data["In_fires"]
+        E_fires = fire_data["E_fires"]
+        I_fires = fire_data["I_fires"]
+        Out_fires = fire_data["Out_fires"]
+        await websocket.send_json({"neurons": neuron_positions})
+        for t in range(In_fires.shape[0]):
+            In_states = In_fires[t].view(-1).tolist()
+            E_states = E_fires[t].view(-1).tolist()
+            I_states = I_fires[t].view(-1).tolist()
+            Out_states = Out_fires[t].view(-1).tolist()
+            states = In_states + E_states + I_states + Out_states
+
+            await websocket.send_json({"frame": t, "states": states})
+            await asyncio.sleep(0.005)  # 20 FPS
+        
+        data_event.clear()
+
+
+@app.post("/shutdown")
 async def shutdown():
-
-    
-    return {"message": "Shut down tasks"}
+    shutdown_event.set()
+    WebSocketDisconnect
+    return
