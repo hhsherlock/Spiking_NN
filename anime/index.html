@@ -87,6 +87,19 @@
     
     <!-- i know it is bad practice to not have a separate js file but remotely run -->
     <script>
+        const rangeScale = d3.scaleLinear()
+            .domain([-30, 0, 100])
+            // .interpolate(d3.interpolateHcl)
+            .range(["blue", "white", "red"]);
+
+        function colorScale(value) {
+            if (value < -30 || value > 100) {
+                return "black";
+            }
+            return rangeScale(value);
+        }
+
+
         const svg = d3.select("#canvas");
         const socket = new WebSocket("ws://localhost:8000/ws");
         let neurons = [];
@@ -149,14 +162,16 @@
                     .attr("cx", d => d.x)
                     .attr("cy", d => d.y)
                     .attr("r", 10)
-                    .attr("class", d => `neuron silent layer${d.layer}`);
+                    .attr("fill", () => colorScale(0))
+                    // .attr("class", d => `neuron silent layer${d.layer}`);
             } else if (data.states) {
                 // Smart diff update:
                 data.states.forEach((state, i) => {
                     if (state !== currentStates[i]) {
                         // State changed, update class
                         d3.select(svg.selectAll("circle").nodes()[i])
-                            .attr("class", `neuron ${state ? 'firing' : 'silent'} layer${neurons[i].layer}`);
+                            .attr("fill", colorScale(state))
+                            // .attr("class", `neuron ${state ? 'firing' : 'silent'} layer${neurons[i].layer}`);
                         currentStates[i] = state;  // Update local state
                     }
                 });

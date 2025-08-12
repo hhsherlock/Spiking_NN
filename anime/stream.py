@@ -8,7 +8,6 @@ from calculation import calculation_function
 
 app = FastAPI()
 
-# data_queue = asyncio.Queue()
 data_event = asyncio.Event()
 shutdown_event = asyncio.Event()
 
@@ -138,7 +137,7 @@ async def websocket_endpoint(websocket: WebSocket):
             states = In_states + E_states + I_states + Out_states
 
             await websocket.send_json({"frame": t, "states": states})
-            await asyncio.sleep(0.005)  # 20 FPS
+            await asyncio.sleep(0.0005)  # 20 FPS
         
         data_event.clear()
 

@@ -8,7 +8,6 @@ Created on Fri Jun 13
 
 import pickle
 import torch
-from tqdm import tqdm
 import math
 
 def calculation_function(params):
@@ -42,7 +41,7 @@ def calculation_function(params):
 
     # siemens unit n_s
     min_current = 0
-    gMax_AMPA = 0.0072
+    gMax_AMPA = 0.000072
     gMax_NMDA = 0.000012
     gMax_GABA = 0.0004
 
@@ -55,8 +54,8 @@ def calculation_function(params):
     rE_NMDA = 70
     rE_GABA = 0
 
-    # mg = 0.01
-    mg = 1.2
+    mg = 0.01
+    # mg = 1.2
 
     threshold = -50 + 70
     current_threshold = -200
@@ -178,8 +177,8 @@ def calculation_function(params):
 
             # update g_decay and g_rise
             # deltaTms * 10 is not good, when try to find the right params need to delete this
-            g_decay = runge_kutta(g_decay_deri, g_decays[i], deltaTms*10, ws[i], e, fire)
-            g_rise = runge_kutta(g_rise_deri, g_rises[i], deltaTms*10, ws[i], e, fire)
+            g_decay = runge_kutta(g_decay_deri, g_decays[i], deltaTms, ws[i], e, fire)
+            g_rise = runge_kutta(g_rise_deri, g_rises[i], deltaTms, ws[i], e, fire)
 
             gP = g_rise - g_decay
 
@@ -427,7 +426,7 @@ def calculation_function(params):
     Out_ws = normalise_weight(Out_ws)
 
     # -----------------------------------------run-------------------------------------------------
-    one_pic = fire_data[25, :, :, :]
+    one_pic = fire_data[25,...]
 
     dims = list(range(one_pic.ndim))
     new_order = [dims[-1]] + dims[:-1]
@@ -444,21 +443,27 @@ def calculation_function(params):
         # Input to E
         In_fire = one_pic[:, :, :, t]
 
-        if E_mp.isnan().any():
-            print("oops")
-            break
+        # if E_mp.isnan().any():
+        #     print("oops")
+        #     break
 
         
         E_fire = check_fire(E_mp)
-        E_fires[t] = E_fire
+        # E_fires[t] = E_fire
+        E_fires[t] = E_mp
+
+        if t >= 500:
+            print(torch.all(E_mp == E_mp[0]).item())
 
 
         I_fire = check_fire(I_mp)
-        I_fires[t] = I_fire
+        # I_fires[t] = I_fire
+        I_fires[t] = I_mp
         
         
         Out_fire = check_fire(Out_mp)
-        Out_fires[t] = Out_fire
+        # Out_fires[t] = Out_fire
+        Out_fires[t] = Out_mp
 
 
         # -----------------update gPs based on activeness--------------------------------
@@ -506,7 +511,7 @@ def calculation_function(params):
         # voltages.append(E_mp[10,10].cpu()-70)
 
     data = {
-        'In_fires': In_fires,
+        'In_fires': In_fires*100,
         'E_fires': E_fires,
         'I_fires': I_fires,
         'Out_fires': Out_fires
