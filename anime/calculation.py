@@ -73,7 +73,7 @@ def calculation_function(params):
     tau_pre = torch.tensor([20, 20, 20], device=device)
     tau_decay = torch.tensor([2.4, 100, 7], device=device)
 
-    # rise has to be quicker than decay, tau needs to be smaller
+    # rise has to be quicker than decay, tau needs to be bigger (negative deri)
     # tau_rise = torch.tensor([1, 50, 3], device=device)
     tau_rise = torch.tensor([params.tau_rise_ampa, params.tau_rise_nmda, params.tau_rise_gaba], device=device)
 
@@ -149,7 +149,7 @@ def calculation_function(params):
     def e_deri(e, on_off):
         tau_rec_broad = broadcast_params(tau_rec, e)
         u_se_broad = broadcast_params(u_se, e)
-        return (1-e)/tau_rec_broad - u_se_broad*on_off
+        return (1-e)/tau_rec_broad - u_se_broad*on_off*e
 
     def g_decay_deri(g_decay, w, e, on_off):
         tau_decay_broad = broadcast_params(tau_decay, e)
@@ -173,7 +173,9 @@ def calculation_function(params):
             fire = fire.unsqueeze(0).unsqueeze(-1).unsqueeze(-1)
             fire = fire.expand(*es[i].shape)
             e = runge_kutta(e_deri, es[i], deltaTms, fire)
-
+            if (e < 0).any():
+                print("e negative")
+                e[e < 0] = 0
 
             # update g_decay and g_rise
             # deltaTms * 10 is not good, when try to find the right params need to delete this
@@ -181,7 +183,10 @@ def calculation_function(params):
             g_rise = runge_kutta(g_rise_deri, g_rises[i], deltaTms, ws[i], e, fire)
 
             gP = g_rise - g_decay
-
+            if (gP < 0).any():
+                print("gP negative")
+                gP[gP < 0] = 0
+                
             new_es.append(e)
             new_g_decays.append(g_decay)
             new_g_rises.append(g_rise)
@@ -192,33 +197,23 @@ def calculation_function(params):
     def normalise_weight(ws, weight_scale=weight_scale):
         # Accumulate mean and std without concatenating
         total_sum_E = 0.0
-        total_sq_sum_E = 0.0
-        total_count_E = 0
-
+        total_count_E = 0.0
         total_sum_I = 0.0
-        total_sq_sum_I = 0.0
-        total_count_I = 0
+        total_count_I = 0.0
+
 
         for w in ws:
             total_sum_E += w[0:2].sum()
-            total_sq_sum_E += (w[0:2] ** 2).sum()
             total_count_E += w[0:2].numel()
-
             total_sum_I += w[2].sum()
-            total_sq_sum_I += (w[2] ** 2).sum()
             total_count_I += w[2].numel()
 
-        mean_E = total_sum_E / total_count_E
-        std_E = (total_sq_sum_E / total_count_E - mean_E ** 2).sqrt()
-
-        mean_I = total_sum_I / total_count_I
-        std_I = (total_sq_sum_I / total_count_I - mean_I ** 2).sqrt()
 
         normalised_ws = []
         
         for w in ws:
-            e = (w[:2] - mean_E) / (std_E + 1e-8)
-            i = (w[2] - mean_I) /(std_I + 1e-8)
+            e = w[:2]/total_sum_E*total_count_E
+            i = w[2]/total_sum_I*total_count_I
             i = i.unsqueeze(0)
 
             # print(e.shape)
@@ -452,8 +447,8 @@ def calculation_function(params):
         # E_fires[t] = E_fire
         E_fires[t] = E_mp
 
-        if t >= 500:
-            print(torch.all(E_mp == E_mp[0]).item())
+        # if t >= 500:
+        #     print(torch.all(E_mp == E_mp[0]).item())
 
 
         I_fire = check_fire(I_mp)
