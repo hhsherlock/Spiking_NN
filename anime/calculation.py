@@ -41,8 +41,8 @@ def calculation_function(params):
 
     # siemens unit n_s
     min_current = 0
-    gMax_AMPA = 0.000072
-    gMax_NMDA = 0.000012
+    gMax_AMPA = 0.0000072
+    gMax_NMDA = 0.0000012
     gMax_GABA = 0.0004
 
     # # below are from the book
@@ -438,9 +438,9 @@ def calculation_function(params):
         # Input to E
         In_fire = one_pic[:, :, :, t]
 
-        # if E_mp.isnan().any():
-        #     print("oops")
-        #     break
+        if E_mp.isnan().any():
+            print("oops")
+            break
 
         
         E_fire = check_fire(E_mp)
