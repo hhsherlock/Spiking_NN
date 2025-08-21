@@ -20,7 +20,7 @@ def calculation_function(params):
         fire_data = pickle.load(f)
 
     # for a quicker testing
-    fire_data = fire_data[...,:2000]
+    fire_data = fire_data[...,:3000]
 
     fire_data = torch.tensor(fire_data, device=device).float()
 
@@ -41,9 +41,9 @@ def calculation_function(params):
 
     # siemens unit n_s
     min_current = 0
-    gMax_AMPA = 0.00072
-    gMax_NMDA = 0.0012
-    gMax_GABA = 0.00004
+    gMax_AMPA = 0.0000072
+    gMax_NMDA = 0.0000012
+    gMax_GABA = 0.0004
 
     # # below are from the book
     # gMax_AMPA = 0.72
@@ -94,7 +94,7 @@ def calculation_function(params):
         weight_values_matrix = weight_values_matrix.unsqueeze(1)
 
 
-    def update_states(current_states, mp):
+    def update_states(mp, current_states, deltaTms=0.05):
             m_alpha = .1*((25-mp) / (torch.exp((25-mp)/10)-1))
             m_beta = 4*torch.exp(-mp/18)
             n_alpha = .01 * ((10-mp) / (torch.exp((10-mp)/10)-1))
@@ -108,9 +108,9 @@ def calculation_function(params):
             alpha_states = alphas*(1-current_states)
             beta_states = betas*current_states
 
-            # new_states = current_states + deltaTms*(alpha_states - beta_states)
+            new_states = current_states + deltaTms*(alpha_states - beta_states)
 
-            return (alpha_states - beta_states)
+            return new_states#(alpha_states - beta_states) #
 
     def broadcast_params(param, target):
         # param = param[:,None]*torch.ones_like(target)[None,...]
@@ -263,12 +263,13 @@ def calculation_function(params):
             es.append(e)
 
             #---------------------about weight---------------------------------------
-            
-            # Q: should i set all weights to random with a scale
-            #  if yes should they be the same scale?
-            w = torch.rand(*arg.shape, device=device)*weight_scale
+            # Q: if different receptors in the same synapse have same/different weights
+            # A: weight is a synapse thing not a receptor thing
+            # expand not repeat for the three receptors
+
+            w = torch.rand(*arg.shape, device=device)
             # set the not connected weight to zero
-            w = w*arg
+            # w = w*arg
             shape = [3] + [1]*w.ndim
             w = w.unsqueeze(0).repeat(shape)
 
@@ -299,7 +300,7 @@ def calculation_function(params):
         return activeness
 
 
-    def update_I_E(mp, gPs, states):
+    def update_I_E(gPs, mp, states, ws):
         nonlocal min_current
 
         # generate currents based on gPs
@@ -332,14 +333,11 @@ def calculation_function(params):
         potassium_currents = gMax_K*torch.pow(states[1], 4)*(mp-rE_K)
         leaky_currents = gMax_leaky*(mp-rE_leaky)
 
-        total_I = - sodium_currents - potassium_currents - leaky_currents - Ireceptors.sum(dim=0)
-    
-        return total_I/Cm #((-25.*(mp-0.) - total_I)/Cm)
+        total_c = - sodium_currents - potassium_currents - leaky_currents - Ireceptors
+        total_c = total_c.sum(dim=0)
+        mp = mp + deltaTms*total_c/Cm
 
-
-        # mp = mp + deltaTms*total_I/Cm
-
-        # return mp, ws
+        return mp, ws
 
 
     # initialise everything
@@ -429,9 +427,9 @@ def calculation_function(params):
     dims = list(range(one_pic.ndim))
     new_order = [dims[-1]] + dims[:-1]
     In_fires = one_pic.permute(new_order)
-    E_fires = torch.zeros((pointCount, E_num, E_num), device=device)
-    I_fires = torch.zeros((pointCount, I_num, I_num), device=device)
-    Out_fires = torch.zeros((pointCount, Out_num, Out_num), device=device)
+    E_fires = torch.empty((pointCount, E_num, E_num), device=device)
+    I_fires = torch.empty((pointCount, I_num, I_num), device=device)
+    Out_fires = torch.empty((pointCount, Out_num, Out_num), device=device)
 
 
     for t in range(pointCount):
@@ -443,17 +441,7 @@ def calculation_function(params):
 
         if E_mp.isnan().any():
             print("oops")
-            data = {
-                'In_fires': In_fires*100,
-                'E_fires': E_fires,
-                'I_fires': I_fires,
-                'Out_fires': Out_fires
-            }
-
-            # with open(path + 'large_files/fires_new.pkl', 'wb') as f:
-            #     pickle.dump(data, f)
-            
-            return data
+            break
 
         
         E_fire = check_fire(E_mp)
@@ -476,30 +464,26 @@ def calculation_function(params):
 
         # -----------------update gPs based on activeness--------------------------------
         # update them by each layer connection, cannot do it at the same time because
-        # the shapes are different
-        E_states = runge_kutta(update_states, E_states, deltaTms, E_mp)
-        # E_states = runge_kutta(update_states(E_mp, E_states), 
+        # the shapes are different 
+        E_states = update_states(E_mp, E_states)
         E_es, E_g_decays, E_g_rises, E_gPs = update_gPs(E_es, E_ws, E_g_decays, E_g_rises, [In_fire, E_fire, I_fire])
 
-        I_states = runge_kutta(update_states, I_states, deltaTms, I_mp)
-        # I_states = update_states(I_mp, I_states)
+
+        I_states = update_states(I_mp, I_states)
         I_es, I_g_decays, I_g_rises, I_gPs = update_gPs(I_es, I_ws, I_g_decays, I_g_rises, [E_fire, I_fire])
 
-        Out_states = runge_kutta(update_states, Out_states, deltaTms, Out_mp)
-        # Out_states = update_states(Out_mp, Out_states)
+
+        Out_states = update_states(Out_mp, Out_states)
         Out_es, Out_g_decays, Out_g_rises, Out_gPs = update_gPs(Out_es, Out_ws, Out_g_decays, Out_g_rises, [E_fire])
 
 
 
         # ------------------generate currents and voltages based on gPs-------------------------------
-        E_mp = runge_kutta(update_I_E, E_mp, deltaTms, E_gPs, E_states)
-        # E_mp, E_ws = update_I_E(E_gPs, E_mp, E_states, E_ws)
+        E_mp, E_ws = update_I_E(E_gPs, E_mp, E_states, E_ws)
 
-        I_mp = runge_kutta(update_I_E, I_mp, deltaTms, I_gPs, I_states)
-        # I_mp, I_ws = update_I_E(I_gPs, I_mp, I_states, I_ws)
+        I_mp, I_ws = update_I_E(I_gPs, I_mp, I_states, I_ws)
 
-        Out_mp = runge_kutta(update_I_E, Out_mp, deltaTms, Out_gPs, Out_states)
-        # Out_mp, Out_ws = update_I_E(Out_gPs, Out_mp, Out_states, Out_ws)
+        Out_mp, Out_ws = update_I_E(Out_gPs, Out_mp, Out_states, Out_ws)
 
         
         # -------------------------update weights----------------------------------
