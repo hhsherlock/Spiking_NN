@@ -16,7 +16,7 @@ def calculation_function(params):
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    with open(path + "large_files/fire_data_10p_8f_non_zero.pkl", "rb") as f:
+    with open(path + "large_files/fire_data_10p_8f_non_zero_background.pkl", "rb") as f:
         fire_data = pickle.load(f)
 
     # for a quicker testing
@@ -43,7 +43,7 @@ def calculation_function(params):
     min_current = 0
     gMax_AMPA = 0.00072
     gMax_NMDA = 0.0012
-    gMax_GABA = 0.00004
+    gMax_GABA = 0.0004
 
     # # below are from the book
     # gMax_AMPA = 0.72
@@ -160,7 +160,7 @@ def calculation_function(params):
         tau_rise_broad = broadcast_params(tau_rise, e)
         return -g_rise/tau_rise_broad + w*e*on_off
 
-    def update_gPs(es, ws, g_decays, g_rises, fires, deltaTms=0.05):
+    def update_gPs(es, ws, g_decays, g_rises, fires, recurrent, deltaTms=0.05):
         # cycle is how many layers it connects 
         cycle = len(es)
         new_es = []
@@ -173,7 +173,11 @@ def calculation_function(params):
             fire = fires[i]
             fire = fire.unsqueeze(0).unsqueeze(-1).unsqueeze(-1)
             fire = fire.expand(*es[i].shape)
-            e = runge_kutta(e_deri, es[i], deltaTms, fire)
+
+            if recurrent and i == 1:
+                e = runge_kutta(e_deri, es[i], deltaTms, fire)
+            else:
+                e = es[i]
             if (e < 0).any():
                 print("e negative")
                 e[e < 0] = 0
@@ -195,35 +199,36 @@ def calculation_function(params):
 
         return new_es, new_g_decays, new_g_rises, gPs
 
-    def normalise_weight(ws, weight_scale=weight_scale):
-        # Accumulate mean and std without concatenating
-        total_sum_E = 0.0
-        total_count_E = 0.0
-        total_sum_I = 0.0
-        total_count_I = 0.0
+    # normalise per neuron only for the In --> E so don't need function
+    # def normalise_weight(ws, weight_scale=weight_scale):
+    #     # Accumulate mean and std without concatenating
+    #     total_sum_E = 0.0
+    #     total_count_E = 0.0
+    #     total_sum_I = 0.0
+    #     total_count_I = 0.0
 
 
-        for w in ws:
-            total_sum_E += w[0:2].sum()
-            total_count_E += w[0:2].numel()
-            total_sum_I += w[2].sum()
-            total_count_I += w[2].numel()
+    #     for w in ws:
+    #         total_sum_E += w[0:2].sum()
+    #         total_count_E += w[0:2].numel()
+    #         total_sum_I += w[2].sum()
+    #         total_count_I += w[2].numel()
 
 
-        normalised_ws = []
+    #     normalised_ws = []
         
-        for w in ws:
-            e = w[:2]/total_sum_E*total_count_E
-            i = w[2]/total_sum_I*total_count_I
-            i = i.unsqueeze(0)
+    #     for w in ws:
+    #         e = w[:2]/total_sum_E*total_count_E
+    #         i = w[2]/total_sum_I*total_count_I
+    #         i = i.unsqueeze(0)
 
-            # print(e.shape)
-            # print(i.shape)
+    #         # print(e.shape)
+    #         # print(i.shape)
 
-            whole = torch.cat((e,i), dim=0)*weight_scale
-            normalised_ws.append(whole)
+    #         whole = torch.cat((e,i), dim=0)*weight_scale
+    #         normalised_ws.append(whole)
 
-        return normalised_ws
+    #     return normalised_ws
 
     # the last param is how many synapses it needs to have 
     def initialise(*args):
@@ -255,22 +260,18 @@ def calculation_function(params):
         g_rises = []
 
         for arg in args[1:]:
-            # 3 is for the three types of receptors 
-            muster = torch.zeros((3,*arg.shape), device=device)
+            muster = torch.zeros(arg.shape, device=device)
 
             e = muster.clone()
             e.fill_(1)
             es.append(e)
 
             #---------------------about weight---------------------------------------
-            
-            # Q: should i set all weights to random with a scale
-            #  if yes should they be the same scale?
-            w = torch.rand(*arg.shape, device=device)*weight_scale
-            # set the not connected weight to zero
-            w = w*arg
+            w = torch.rand(*arg.shape[1:], device=device)*weight_scale
             shape = [3] + [1]*w.ndim
             w = w.unsqueeze(0).repeat(shape)
+
+            w = w*arg
 
 
             ws.append(w)
@@ -352,11 +353,13 @@ def calculation_function(params):
 
 
     #-----------connection matrices-------------
-    In_con_E = torch.zeros(pixel_num, pixel_num, feature_num, E_num, E_num, device=device)
+    # ampa
+    In_con_E = torch.zeros(3, pixel_num, pixel_num, feature_num, E_num, E_num, device=device)
     # all-to-all  connections
-    In_con_E.fill_(1.)
+    In_con_E[0].fill_(1.)
 
     # the later two E_nums are the one sending out the connections/the center
+    # ampa and nmda
     E_con_E = torch.zeros(E_num, E_num, E_num, E_num, device=device)
     sigma_E_E = 2
     max_E_E = 10
@@ -370,29 +373,44 @@ def calculation_function(params):
                     euc_distance = math.sqrt((project_center_x - i)**2 + (project_center_y - j)**2)
                     E_con_E[i,j,k,l] = max_E_E*math.exp(-0.5*(euc_distance/sigma_E_E)**2)
     E_con_E = E_con_E.permute(2, 3, 0, 1)
+    E_con_E = E_con_E.unsqueeze(0).repeat(3,1,1,1,1)
+    E_con_E[-1] = 0
+
 
     # E to I connection matrix (p=0.1)
+    # ampa and nmda 
     E_con_I = torch.zeros(E_num, E_num, I_num, I_num, device=device)
     num_elements = E_con_I.numel()
     num_ones = max(1, int(num_elements * 0.1))  # Ensure at least 1 element
     flat_indices = torch.randperm(num_elements)[:num_ones]
     E_con_I.view(-1)[flat_indices] = 1
+    E_con_I = E_con_I.unsqueeze(0).repeat(3,1,1,1,1)
+    E_con_I[-1] = 0
 
     # I to E connection matrix (p=0.024)
+    # gaba
     I_con_E = torch.zeros(I_num, I_num, E_num, E_num, device=device)
     num_elements = I_con_E.numel()
     num_ones = max(1, int(num_elements * 0.024))  # Ensure at least 1 element
     flat_indices = torch.randperm(num_elements)[:num_ones]
     I_con_E.view(-1)[flat_indices] = 1
+    I_con_E = I_con_E.unsqueeze(0).repeat(3,1,1,1,1)
+    I_con_E[0] = 0
+    I_con_E[1] = 0
 
     # I to I self connection (p=0.1)
+    # gaba
     I_con_I = torch.zeros(I_num, I_num, I_num, I_num, device=device)
     num_elements = I_con_I.numel()
     num_ones = max(1, int(num_elements * 0.1))  # Ensure at least 1 element
     flat_indices = torch.randperm(num_elements)[:num_ones]
     I_con_I.view(-1)[flat_indices] = 1
+    I_con_I = I_con_I.unsqueeze(0).repeat(3,1,1,1,1)
+    I_con_I[0] = 0
+    I_con_I[1] = 0
 
     # E to Out connection
+    # ampa
     E_con_Out = torch.zeros(E_num, E_num, Out_num, Out_num, device=device)
     sigma_E_Out = 2
     max_E_Out = 10
@@ -407,21 +425,23 @@ def calculation_function(params):
 
                     euc_distance = math.sqrt((project_center_x - i)**2 + (project_center_y - j)**2)
                     E_con_Out[i,j,k,l] = max_E_Out*math.exp(-0.5*(euc_distance/sigma_E_Out)**2)
-
+    E_con_Out = E_con_Out.unsqueeze(0).repeat(3,1,1,1,1)
+    E_con_Out[1] = 0
+    E_con_Out[2] = 0
 
 
     #----------E---------------------
     E_cells, E_states, E_mp, E_es, E_ws, E_g_decays, E_g_rises = initialise(E_num, In_con_E, E_con_E, I_con_E)
-    E_ws = normalise_weight(E_ws)
+    # E_ws = normalise_weight(E_ws)
 
 
     #----------I-----------------
     I_cells, I_states, I_mp, I_es, I_ws, I_g_decays, I_g_rises = initialise(I_num, E_con_I, I_con_I)
-    I_ws = normalise_weight(I_ws)
+    # I_ws = normalise_weight(I_ws)
 
     #-----------Output-------------
     Out_cells, Out_states, Out_mp, Out_es, Out_ws, Out_g_decays, Out_g_rises = initialise(Out_num, E_con_Out)
-    Out_ws = normalise_weight(Out_ws)
+    # Out_ws = normalise_weight(Out_ws)
 
     # -----------------------------------------run-------------------------------------------------
     one_pic = fire_data[25,...]
@@ -479,15 +499,15 @@ def calculation_function(params):
         # the shapes are different
         E_states = runge_kutta(update_states, E_states, deltaTms, E_mp)
         # E_states = runge_kutta(update_states(E_mp, E_states), 
-        E_es, E_g_decays, E_g_rises, E_gPs = update_gPs(E_es, E_ws, E_g_decays, E_g_rises, [In_fire, E_fire, I_fire])
+        E_es, E_g_decays, E_g_rises, E_gPs = update_gPs(E_es, E_ws, E_g_decays, E_g_rises, [In_fire, E_fire, I_fire], 1)
 
         I_states = runge_kutta(update_states, I_states, deltaTms, I_mp)
         # I_states = update_states(I_mp, I_states)
-        I_es, I_g_decays, I_g_rises, I_gPs = update_gPs(I_es, I_ws, I_g_decays, I_g_rises, [E_fire, I_fire])
+        I_es, I_g_decays, I_g_rises, I_gPs = update_gPs(I_es, I_ws, I_g_decays, I_g_rises, [E_fire, I_fire], 0)
 
         Out_states = runge_kutta(update_states, Out_states, deltaTms, Out_mp)
         # Out_states = update_states(Out_mp, Out_states)
-        Out_es, Out_g_decays, Out_g_rises, Out_gPs = update_gPs(Out_es, Out_ws, Out_g_decays, Out_g_rises, [E_fire])
+        Out_es, Out_g_decays, Out_g_rises, Out_gPs = update_gPs(Out_es, Out_ws, Out_g_decays, Out_g_rises, [E_fire], 0)
 
 
 
@@ -514,8 +534,8 @@ def calculation_function(params):
             dw = (interactions*weight_values_matrix).sum(dim=-1)
             E_ws[0] += dw*learning_rate
 
-
-        E_ws = normalise_weight(E_ws)
+        # only normalise the In to E connection
+        E_ws[0] = E_ws[0]/E_ws[0].sum(dim=(-2,-1), keepdim=True)
 
 
 
