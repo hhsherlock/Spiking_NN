@@ -16,7 +16,7 @@ def calculation_function(params):
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    with open(path + "large_files/fire_data_10p_8f_non_zero_background.pkl", "rb") as f:
+    with open(path + "fire_data_10p_8f_non_zero_background.pkl", "rb") as f:
         fire_data = pickle.load(f)
 
     # for a quicker testing
@@ -41,9 +41,13 @@ def calculation_function(params):
 
     # siemens unit n_s
     min_current = 0
-    gMax_AMPA = 0.00072
+    # gMax_AMPA = 0.00072
+    # gMax_NMDA = 0.0012
+    # gMax_GABA = 0.0004
+
+    gMax_AMPA = 0.00072 
     gMax_NMDA = 0.0012
-    gMax_GABA = 0.0004
+    gMax_GABA = 0.004
 
     # # below are from the book
     # gMax_AMPA = 0.72
@@ -94,7 +98,7 @@ def calculation_function(params):
         weight_values_matrix = weight_values_matrix.unsqueeze(1)
 
 
-    def update_states(current_states, mp):
+    def update_states(mp, current_states, deltaTms=0.05):
             m_alpha = .1*((25-mp) / (torch.exp((25-mp)/10)-1))
             m_beta = 4*torch.exp(-mp/18)
             n_alpha = .01 * ((10-mp) / (torch.exp((10-mp)/10)-1))
@@ -108,9 +112,9 @@ def calculation_function(params):
             alpha_states = alphas*(1-current_states)
             beta_states = betas*current_states
 
-            # new_states = current_states + deltaTms*(alpha_states - beta_states)
+            new_states = current_states + deltaTms*(alpha_states - beta_states)
 
-            return (alpha_states - beta_states)
+            return new_states
 
     def broadcast_params(param, target):
         # param = param[:,None]*torch.ones_like(target)[None,...]
@@ -169,7 +173,7 @@ def calculation_function(params):
         gPs = []
         
         for i in range(cycle):
-            # print(es[i].shape)
+
             fire = fires[i]
             fire = fire.unsqueeze(0).unsqueeze(-1).unsqueeze(-1)
             fire = fire.expand(*es[i].shape)
@@ -182,10 +186,11 @@ def calculation_function(params):
                 print("e negative")
                 e[e < 0] = 0
 
-            # update g_decay and g_rise
+
             # deltaTms * 10 is not good, when try to find the right params need to delete this
             g_decay = runge_kutta(g_decay_deri, g_decays[i], deltaTms, ws[i], e, fire)
             g_rise = runge_kutta(g_rise_deri, g_rises[i], deltaTms, ws[i], e, fire)
+
 
             gP = g_rise - g_decay
             if (gP < 0).any():
@@ -199,38 +204,7 @@ def calculation_function(params):
 
         return new_es, new_g_decays, new_g_rises, gPs
 
-    # normalise per neuron only for the In --> E so don't need function
-    # def normalise_weight(ws, weight_scale=weight_scale):
-    #     # Accumulate mean and std without concatenating
-    #     total_sum_E = 0.0
-    #     total_count_E = 0.0
-    #     total_sum_I = 0.0
-    #     total_count_I = 0.0
 
-
-    #     for w in ws:
-    #         total_sum_E += w[0:2].sum()
-    #         total_count_E += w[0:2].numel()
-    #         total_sum_I += w[2].sum()
-    #         total_count_I += w[2].numel()
-
-
-    #     normalised_ws = []
-        
-    #     for w in ws:
-    #         e = w[:2]/total_sum_E*total_count_E
-    #         i = w[2]/total_sum_I*total_count_I
-    #         i = i.unsqueeze(0)
-
-    #         # print(e.shape)
-    #         # print(i.shape)
-
-    #         whole = torch.cat((e,i), dim=0)*weight_scale
-    #         normalised_ws.append(whole)
-
-    #     return normalised_ws
-
-    # the last param is how many synapses it needs to have 
     def initialise(*args):
         d = args[0]
 
@@ -270,6 +244,7 @@ def calculation_function(params):
             w = torch.rand(*arg.shape[1:], device=device)*weight_scale
             shape = [3] + [1]*w.ndim
             w = w.unsqueeze(0).repeat(shape)
+            # w = torch.rand(*arg.shape, device=device)*weight_scale
 
             w = w*arg
 
@@ -281,10 +256,12 @@ def calculation_function(params):
 
             g_decay = muster.clone()
             g_decay.fill_(1)
+            g_decay = g_decay*arg
             g_decays.append(g_decay)
 
             g_rise = muster.clone()
             g_rise.fill_(1)
+            g_rise = g_rise*arg
             g_rises.append(g_rise)
 
 
@@ -314,10 +291,10 @@ def calculation_function(params):
             temp_mp = broadcast_mp(mp, gPs[i])
 
             AMPA_currents += (gMax_AMPA*gPs[i][0,...]*(temp_mp-rE_AMPA)).sum(dim=tuple(range(temp_mp.ndim - 2)))
-            # if (temp_mp-rE_AMPA).all() > 0:
-            #     print("nooo")
             NMDA_currents += (gMax_NMDA*gPs[i][1,...]*(1/1+mg*torch.exp(-0.062*temp_mp)/3.57)*(temp_mp-rE_NMDA)).sum(dim=tuple(range(temp_mp.ndim - 2)))
             GABA_currents += (gMax_GABA*gPs[i][2,...]*(temp_mp-rE_GABA)*(-1)).sum(dim=tuple(range(temp_mp.ndim - 2)))
+
+
 
         Ireceptors = AMPA_currents + NMDA_currents + GABA_currents
         if Ireceptors.min() < min_current:
@@ -333,14 +310,13 @@ def calculation_function(params):
         potassium_currents = gMax_K*torch.pow(states[1], 4)*(mp-rE_K)
         leaky_currents = gMax_leaky*(mp-rE_leaky)
 
-        total_I = - sodium_currents - potassium_currents - leaky_currents - Ireceptors.sum(dim=0)
-    
-        return total_I/Cm #((-25.*(mp-0.) - total_I)/Cm)
+        total_I = - sodium_currents - potassium_currents - leaky_currents - Ireceptors
 
 
-        # mp = mp + deltaTms*total_I/Cm
+        mp = mp + deltaTms*total_I/Cm
+        # mp = torch.clamp(mp, max=50.0)
 
-        # return mp, ws
+        return mp
 
 
     # initialise everything
@@ -463,6 +439,7 @@ def calculation_function(params):
 
         if E_mp.isnan().any():
             print("oops")
+            print(t)
             data = {
                 'In_fires': In_fires*100,
                 'E_fires': E_fires,
@@ -475,13 +452,10 @@ def calculation_function(params):
             
             return data
 
-        
         E_fire = check_fire(E_mp)
         # E_fires[t] = E_fire
         E_fires[t] = E_mp
 
-        # if t >= 500:
-        #     print(torch.all(E_mp == E_mp[0]).item())
 
 
         I_fire = check_fire(I_mp)
@@ -497,28 +471,31 @@ def calculation_function(params):
         # -----------------update gPs based on activeness--------------------------------
         # update them by each layer connection, cannot do it at the same time because
         # the shapes are different
-        E_states = runge_kutta(update_states, E_states, deltaTms, E_mp)
-        # E_states = runge_kutta(update_states(E_mp, E_states), 
-        E_es, E_g_decays, E_g_rises, E_gPs = update_gPs(E_es, E_ws, E_g_decays, E_g_rises, [In_fire, E_fire, I_fire], 1)
 
-        I_states = runge_kutta(update_states, I_states, deltaTms, I_mp)
-        # I_states = update_states(I_mp, I_states)
+        E_states = update_states(E_mp, E_states) 
+        E_es, E_g_decays, E_g_rises, E_gPs = update_gPs(E_es, E_ws, E_g_decays, E_g_rises, [In_fire, E_fire, I_fire], 1)
+        
+
+
+        I_states = update_states(I_mp, I_states)
         I_es, I_g_decays, I_g_rises, I_gPs = update_gPs(I_es, I_ws, I_g_decays, I_g_rises, [E_fire, I_fire], 0)
 
-        Out_states = runge_kutta(update_states, Out_states, deltaTms, Out_mp)
-        # Out_states = update_states(Out_mp, Out_states)
+  
+        Out_states = update_states(Out_mp, Out_states)
         Out_es, Out_g_decays, Out_g_rises, Out_gPs = update_gPs(Out_es, Out_ws, Out_g_decays, Out_g_rises, [E_fire], 0)
 
 
 
         # ------------------generate currents and voltages based on gPs-------------------------------
-        E_mp = runge_kutta(update_I_E, E_mp, deltaTms, E_gPs, E_states)
-        # E_mp, E_ws = update_I_E(E_gPs, E_mp, E_states, E_ws)
 
-        I_mp = runge_kutta(update_I_E, I_mp, deltaTms, I_gPs, I_states)
+        E_mp = update_I_E(E_mp, E_gPs, E_states)
+        # E_mp, E_ws = update_I_E(E_gPs, E_mp, E_states, E_ws)
+        
+
+        I_mp = update_I_E(I_mp, I_gPs, I_states)
         # I_mp, I_ws = update_I_E(I_gPs, I_mp, I_states, I_ws)
 
-        Out_mp = runge_kutta(update_I_E, Out_mp, deltaTms, Out_gPs, Out_states)
+        Out_mp = update_I_E(Out_mp, Out_gPs, Out_states)
         # Out_mp, Out_ws = update_I_E(Out_gPs, Out_mp, Out_states, Out_ws)
 
         
@@ -531,11 +508,11 @@ def calculation_function(params):
             past_pre_fires = In_fires[t-399:t+1,:,:,:]
             # using just multiplication
             interactions = torch.einsum('tijk,ab->ijkabt', past_pre_fires, E_fire)
-            dw = (interactions*weight_values_matrix).sum(dim=-1)
-            E_ws[0] += dw*learning_rate
+            dw = (interactions*weight_values_matrix).sum(dim=-1)[0]
+            E_ws[0][0] += dw*learning_rate
 
-        # only normalise the In to E connection
-        E_ws[0] = E_ws[0]/E_ws[0].sum(dim=(-2,-1), keepdim=True)
+        # only normalise the In to E connection's AMPA connection hence the [0][0]
+        E_ws[0][0] = E_ws[0][0]/E_ws[0][0].sum(dim=(0,1,2), keepdim=True)
 
 
 
