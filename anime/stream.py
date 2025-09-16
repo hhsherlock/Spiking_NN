@@ -113,16 +113,23 @@ async def websocket_endpoint(websocket: WebSocket):
 
 
     while True:
+        # await asyncio.wait(
+        #     [data_event.wait(), shutdown_event.wait()],
+        #     return_when=asyncio.FIRST_COMPLETED,
+        # )
+
+        # # If shutdown triggered before data_event, exit early
+        # if shutdown_event.is_set():
+        #     await websocket.close()
+        #     break
         await asyncio.wait(
-            [data_event.wait(), shutdown_event.wait()],
-            return_when=asyncio.FIRST_COMPLETED,
+        [asyncio.create_task(data_event.wait()), asyncio.create_task(shutdown_event.wait())],
+        return_when=asyncio.FIRST_COMPLETED,
         )
 
-        # If shutdown triggered before data_event, exit early
         if shutdown_event.is_set():
             await websocket.close()
             break
-        
 
         In_fires = fire_data["In_fires"]
         E_fires = fire_data["E_fires"]
@@ -137,7 +144,7 @@ async def websocket_endpoint(websocket: WebSocket):
             states = In_states + E_states + I_states + Out_states
 
             await websocket.send_json({"frame": t, "states": states})
-            await asyncio.sleep(0.0005)  # 20 FPS
+            await asyncio.sleep(0.05)  # 20 FPS
         
         data_event.clear()
 
@@ -145,5 +152,4 @@ async def websocket_endpoint(websocket: WebSocket):
 @app.post("/shutdown")
 async def shutdown():
     shutdown_event.set()
-    WebSocketDisconnect
-    return
+    return {"status": "shutdown triggered"}
