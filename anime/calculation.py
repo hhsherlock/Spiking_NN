@@ -21,10 +21,11 @@ def calculation_function(params):
         fire_data = pickle.load(f)
 
     # for a quicker testing
-    fire_data = fire_data[...,:2000]
+    fire_data = fire_data[...,:3000]
 
     fire_data = torch.tensor(fire_data, device=device).float()
 
+    spontaneous_mp = 30
 
     # parameters
     gMax_Na = 120
@@ -236,6 +237,8 @@ def calculation_function(params):
 
         # if randomize:
         for arg in args[1:]:
+            gaussian = arg[1]
+            arg = arg[0]
             muster = torch.zeros(arg.shape, device=device)
 
             e = muster.clone()
@@ -243,7 +246,11 @@ def calculation_function(params):
             es.append(e)
 
             #---------------------about weight---------------------------------------
-            w = torch.rand(*arg.shape[1:], device=device)*weight_scale
+            if not gaussian:
+                w = torch.rand(*arg.shape[1:], device=device)*weight_scale
+            else:
+                w = torch.ones(*arg.shape[1:], device=device)*weight_scale
+
             shape = [3] + [1]*w.ndim
             w = w.unsqueeze(0).repeat(shape)
             # w = torch.rand(*arg.shape, device=device)*weight_scale
@@ -409,16 +416,16 @@ def calculation_function(params):
 
 
     #----------E---------------------
-    E_cells, E_states, E_mp, E_es, E_ws, E_g_decays, E_g_rises = initialise(E_num, In_con_E, E_con_E, I_con_E)
+    E_cells, E_states, E_mp, E_es, E_ws, E_g_decays, E_g_rises = initialise(E_num, [In_con_E, False], [E_con_E, True], [I_con_E, False])
     # E_ws = normalise_weight(E_ws)
 
 
     #----------I-----------------
-    I_cells, I_states, I_mp, I_es, I_ws, I_g_decays, I_g_rises = initialise(I_num, E_con_I, I_con_I)
+    I_cells, I_states, I_mp, I_es, I_ws, I_g_decays, I_g_rises = initialise(I_num, [E_con_I, False], [I_con_I, False])
     # I_ws = normalise_weight(I_ws)
 
     #-----------Output-------------
-    Out_cells, Out_states, Out_mp, Out_es, Out_ws, Out_g_decays, Out_g_rises = initialise(Out_num, E_con_Out)
+    Out_cells, Out_states, Out_mp, Out_es, Out_ws, Out_g_decays, Out_g_rises = initialise(Out_num, [E_con_Out, True])
     # Out_ws = normalise_weight(Out_ws)
 
     # -----------------------------------------run-------------------------------------------------
@@ -454,17 +461,22 @@ def calculation_function(params):
             
             return data
 
+        # add spontaneous firing
+        # mask = torch.rand(E_mp.shape) < 0.001
+        # E_mp[mask] = spontaneous_mp
         E_fire = check_fire(E_mp)
         # E_fires[t] = E_fire
         E_fires[t] = E_mp
 
 
-
+        # mask = torch.rand(I_mp.shape) < 0.001
+        # I_mp[mask] = spontaneous_mp
         I_fire = check_fire(I_mp)
         # I_fires[t] = I_fire
         I_fires[t] = I_mp
         
-        
+        # mask = torch.rand(Out_mp.shape) < 0.001
+        # Out_mp[mask] = spontaneous_mp
         Out_fire = check_fire(Out_mp)
         # Out_fires[t] = Out_fire
         Out_fires[t] = Out_mp
