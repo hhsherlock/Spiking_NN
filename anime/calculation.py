@@ -16,7 +16,8 @@ def calculation_function(params):
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    with open(path + "fire_data_10p_8f_non_zero_background.pkl", "rb") as f:
+    # with open(path + "fire_data_10p_8f_non_zero_background.pkl", "rb") as f:
+    with open(path + "fire_data_10p_8f_non_zero.pkl", "rb") as f:
         fire_data = pickle.load(f)
 
     # for a quicker testing
@@ -233,6 +234,7 @@ def calculation_function(params):
         g_decays = []
         g_rises = []
 
+        # if randomize:
         for arg in args[1:]:
             muster = torch.zeros(arg.shape, device=device)
 
