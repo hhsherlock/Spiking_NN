@@ -20,10 +20,37 @@ def calculation_function(params):
     with open(path + "fire_data_10p_8f_non_zero.pkl", "rb") as f:
         fire_data = pickle.load(f)
 
-    # for a quicker testing
-    fire_data = fire_data[...,:3000]
-
     fire_data = torch.tensor(fire_data, device=device).float()
+
+    # for a quicker testing
+    fire_data = fire_data[25,...,:3000]
+
+
+    # num_same = 1
+    # num_tstp = 1600
+    # # with open(path + "fire_data_10p_8f_non_zero_background.pkl", "rb") as f:
+    # with open(path + "fire_data_10p_8f_rotate_one.pkl", "rb") as f:
+    #     fire_data = pickle.load(f)
+
+    # fire_data = torch.tensor(fire_data, device=device).float()
+
+    # # # for a quicker testing
+    # # fire_data = fire_data[...,:3000]
+
+    # fire_data = fire_data[:num_same,...,:num_tstp]
+    # temp = fire_data.permute(1,2,3,0,4)
+    # fire_data = temp.reshape(10,10,8,num_same*num_tstp)
+
+    # #-------------load the new number----------------------
+    # # with open(path + "fire_data_10p_8f_non_zero_background.pkl", "rb") as f:
+    # with open(path + "fire_data_10p_8f_two.pkl", "rb") as f:
+    #     two_data = pickle.load(f)
+    # two_data = torch.tensor(two_data, device=device).float()
+
+    # two_data = two_data[...,1000:5000]
+    # two_data = two_data[0]
+    # fire_data = two_data
+    # # fire_data = torch.cat([fire_data, two_data], dim=-1)
 
     spontaneous_mp = 30
 
@@ -50,6 +77,7 @@ def calculation_function(params):
     gMax_AMPA = 0.00072 
     gMax_NMDA = 0.0012
     gMax_GABA = 0.004
+    # gMax_GABA = 0.008
 
     # # below are from the book
     # gMax_AMPA = 0.72
@@ -355,7 +383,13 @@ def calculation_function(params):
                     project_center_x = k
                     project_center_y = l
 
-                    euc_distance = math.sqrt((project_center_x - i)**2 + (project_center_y - j)**2)
+                    dx = min(abs(project_center_x - i), E_num-abs(project_center_x - i))
+                    dy = min(abs(project_center_y - j), E_num-abs(project_center_y - j))
+
+                    euc_distance = math.sqrt(dx**2 + dy**2)
+                    
+
+                    # euc_distance = math.sqrt((project_center_x - i)**2 + (project_center_y - j)**2)
                     E_con_E[i,j,k,l] = max_E_E*math.exp(-0.5*(euc_distance/sigma_E_E)**2)
     E_con_E = E_con_E.permute(2, 3, 0, 1)
     E_con_E = E_con_E.unsqueeze(0).repeat(3,1,1,1,1)
@@ -429,7 +463,8 @@ def calculation_function(params):
     # Out_ws = normalise_weight(Out_ws)
 
     # -----------------------------------------run-------------------------------------------------
-    one_pic = fire_data[25,...]
+    # one_pic = fire_data[32,...]
+    one_pic = fire_data
 
     dims = list(range(one_pic.ndim))
     new_order = [dims[-1]] + dims[:-1]
@@ -533,11 +568,19 @@ def calculation_function(params):
 
         # voltages.append(E_mp[10,10].cpu()-70)
 
+    # data = {
+    #     'In_fires': In_fires*100,
+    #     'E_fires': E_fires,
+    #     'I_fires': I_fires,
+    #     'Out_fires': Out_fires
+    # }
+
+    # skip showing the silence part between 600 - 1500
     data = {
-        'In_fires': In_fires*100,
-        'E_fires': E_fires,
-        'I_fires': I_fires,
-        'Out_fires': Out_fires
+        'In_fires': torch.cat([In_fires[:600]*100,In_fires[1501:2500]*100, In_fires[3200:]], dim=0),
+        'E_fires': torch.cat([E_fires[:600], E_fires[1501:2500], E_fires[3200:]], dim=0),
+        'I_fires': torch.cat([I_fires[:600], I_fires[1501:2500], I_fires[3200:]], dim=0),
+        'Out_fires': torch.cat([Out_fires[:600], Out_fires[1501:2500], Out_fires[3200:]], dim=0)
     }
 
     # with open(path + 'large_files/fires_new.pkl', 'wb') as f:
