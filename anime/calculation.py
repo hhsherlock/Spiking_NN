@@ -17,13 +17,13 @@ def calculation_function(params):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # with open(path + "fire_data_10p_8f_non_zero_background.pkl", "rb") as f:
-    with open(path + "fire_data_gabor_binary.pkl", "rb") as f:
+    with open(path + "fire_data_gabor_binary_rotate.pkl", "rb") as f:
         fire_data = pickle.load(f)
 
     fire_data = torch.tensor(fire_data, device=device).float()
-
+    one_pic = fire_data
     # for a quicker testing
-    fire_data = fire_data[25,...,:3000]
+    # fire_data = fire_data[25,...,:3000]
     # fire_data = fire_data[25]
 
 
@@ -99,19 +99,21 @@ def calculation_function(params):
     # # guesses
     # u_se = torch.tensor([0.9, 0.9, 0.9], device=device)
     # tau_rec = torch.tensor([5, 12, 12], device=device)
-
     # guesses
     u_se = torch.tensor([params.u_se_ampa, params.u_se_nmda, params.u_se_gaba], device=device)
     tau_rec = torch.tensor([params.tau_rec_ampa, params.tau_rec_nmda, params.tau_rec_gaba], device=device)
+    tau_rec = tau_rec
 
     # below from paper 
     tau_pre = torch.tensor([20, 20, 20], device=device)
+    tau_pre = tau_pre
     tau_decay = torch.tensor([2.4, 100, 7], device=device)
+    tau_decay = tau_decay
 
     # rise has to be quicker than decay, tau needs to be bigger (negative deri)
     # tau_rise = torch.tensor([1, 50, 3], device=device)
     tau_rise = torch.tensor([params.tau_rise_ampa, params.tau_rise_nmda, params.tau_rise_gaba], device=device)
-
+    tau_rise = tau_rise
     # guesses
     # learning_rate = 100
     # weight_scale = 10
