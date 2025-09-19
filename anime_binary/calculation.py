@@ -17,13 +17,19 @@ def calculation_function(params):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # with open(path + "fire_data_10p_8f_non_zero_background.pkl", "rb") as f:
-    with open(path + "fire_data_gabor_binary.pkl", "rb") as f:
-        fire_data = pickle.load(f)
+    with open(path + "binary_fire_date.pkl", "rb") as f:
+        fire_dataset = pickle.load(f)
 
-    fire_data = torch.tensor(fire_data, device=device).float()
+    fire_dataset = torch.tensor(fire_dataset, device=device).float()
 
     # for a quicker testing
-    fire_data = fire_data[25,...,:3000]
+
+    fire_data = fire_dataset[9,...,:2000]
+    # fire_data = fire_dataset[9]
+    # fire_data = fire_dataset
+    # fire_data_diff = fire_dataset[9,...,:2000]
+    # fire_data = torch.concatenate([fire_data, fire_data_diff], dim=-1)
+    one_pic = fire_data
     # fire_data = fire_data[25]
 
 
@@ -125,7 +131,7 @@ def calculation_function(params):
     temp_tau_pre = tau_pre.unsqueeze(-1)
     weight_values_matrix = torch.exp(-gaps/temp_tau_pre)
 
-    for _ in range(5):
+    for _ in range(4):
         weight_values_matrix = weight_values_matrix.unsqueeze(1)
 
 
@@ -360,9 +366,7 @@ def calculation_function(params):
 
 
     # initialise everything
-
-    pixel_num = 10
-    feature_num = 8
+    pixel_num = 28
     E_num = 20
     I_num = 4
     Out_num = 5
@@ -370,7 +374,7 @@ def calculation_function(params):
 
     #-----------connection matrices-------------
     # ampa
-    In_con_E = torch.zeros(3, pixel_num, pixel_num, feature_num, E_num, E_num, device=device)
+    In_con_E = torch.zeros(3, pixel_num, pixel_num, E_num, E_num, device=device)
     # all-to-all  connections
     In_con_E[0].fill_(1.)
 
@@ -489,7 +493,7 @@ def calculation_function(params):
             print(f"Progress: {t}/{pointCount} ({100*t/pointCount:.1f}%)")
         # check mp and which fires then change connected layer activeness
         # Input to E
-        In_fire = one_pic[:, :, :, t]
+        In_fire = one_pic[..., t]
 
         if E_mp.isnan().any():
             print("oops")
@@ -564,16 +568,17 @@ def calculation_function(params):
         # take only the 400 time step before, equals to 20ms, which is the learning period in the paper
         # for now update after 400 time steps 
         if t >= 400:
-            past_pre_fires = In_fires[t-399:t+1,:,:,:]
+            past_pre_fires = In_fires[t-399:t+1,:,:]
             # using just multiplication
-            interactions = torch.einsum('tijk,ab->ijkabt', past_pre_fires, E_fire)
+            interactions = torch.einsum('tij,ab->ijabt', past_pre_fires, E_fire)
             dw = (interactions*weight_values_matrix).sum(dim=-1)[0]
             E_ws[0][0] += dw*learning_rate
 
+        # if t%10 == 0:
         # only normalise the In to E connection's AMPA connection hence the [0][0]
-        # E_ws[0][0] = E_ws[0][0]/E_ws[0][0].sum(dim=(0,1,2), keepdim=True)*weight_scale*5
-        sums = E_ws[0][0].sum(dim=(0,1,2), keepdim=True)   # sum over presyn dims for each post neuron
-        E_ws[0][0] = E_ws[0][0] / sums * (weight_scale * 5 / (E_ws[0][0].shape[2]*E_ws[0][0].shape[3])) #----this step looks weird
+            E_ws[0][0] = E_ws[0][0]/E_ws[0][0].sum(dim=(0,1), keepdim=True)*weight_scale/10
+        # sums = E_ws[0][0].sum(dim=(0,1,2), keepdim=True)   # sum over presyn dims for each post neuron
+        # E_ws[0][0] = E_ws[0][0] / sums * (weight_scale * 5 / (E_ws[0][0].shape[2]*E_ws[0][0].shape[3])) #--this step looks weird!
 
 
 
