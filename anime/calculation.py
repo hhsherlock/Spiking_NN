@@ -17,10 +17,12 @@ def calculation_function(params):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # with open(path + "fire_data_10p_8f_non_zero_background.pkl", "rb") as f:
-    with open(path + "fire_data_gabor_binary_rotate.pkl", "rb") as f:
+    # with open(path + "fire_data_gabor_binary_rotate.pkl", "rb") as f:
+    with open(path + "fire_data_gabor_binary.pkl", "rb") as f:
         fire_data = pickle.load(f)
 
     fire_data = torch.tensor(fire_data, device=device).float()
+    fire_data = fire_data[...,:4000]
     one_pic = fire_data
     # for a quicker testing
     # fire_data = fire_data[25,...,:3000]
@@ -78,7 +80,7 @@ def calculation_function(params):
     gMax_AMPA = 0.00072 
     gMax_NMDA = 0.0012
     gMax_GABA = 0.004
-    # gMax_GABA = 0.008
+    # gMax_GABA = 0.006
 
     # # below are from the book
     # gMax_AMPA = 0.72
@@ -211,10 +213,11 @@ def calculation_function(params):
             fire = fire.unsqueeze(0).unsqueeze(-1).unsqueeze(-1)
             fire = fire.expand(*es[i].shape)
 
-            if recurrent and i == 1:
-                e = runge_kutta(e_deri, es[i], deltaTms, fire)
-            else:
+            if recurrent and i == 0:
                 e = es[i]
+                e.fill_(1)
+            else:
+                e = runge_kutta(e_deri, es[i], deltaTms, fire)
             if (e < 0).any():
                 print("e negative")
                 e[e < 0] = 0
@@ -380,7 +383,7 @@ def calculation_function(params):
     # ampa and nmda
     E_con_E = torch.zeros(E_num, E_num, E_num, E_num, device=device)
     sigma_E_E = 2
-    max_E_E = 10
+    max_E_E = 4.5
     for i in range(E_num):
         for j in range(E_num):
             for k in range(E_num):
@@ -388,8 +391,11 @@ def calculation_function(params):
                     project_center_x = k
                     project_center_y = l
 
-                    dx = min(abs(project_center_x - i), E_num-abs(project_center_x - i))
-                    dy = min(abs(project_center_y - j), E_num-abs(project_center_y - j))
+                    # dx = min(abs(project_center_x - i), E_num-abs(project_center_x - i))
+                    # dy = min(abs(project_center_y - j), E_num-abs(project_center_y - j))
+                    
+                    dx = abs(project_center_x - i)
+                    dy = abs(project_center_y - j)
 
                     euc_distance = math.sqrt(dx**2 + dy**2)
                     
@@ -437,7 +443,7 @@ def calculation_function(params):
     # ampa
     E_con_Out = torch.zeros(E_num, E_num, Out_num, Out_num, device=device)
     sigma_E_Out = 2
-    max_E_Out = 10
+    max_E_Out = 1
     # find the center point from Output to E
     ratio = E_num/Out_num
     for i in range(E_num):
@@ -458,7 +464,7 @@ def calculation_function(params):
     E_cells, E_states, E_mp, E_es, E_ws, E_g_decays, E_g_rises = initialise(E_num, 
                                                                             [In_con_E, False, weight_scale], 
                                                                             [E_con_E, True, weight_scale], 
-                                                                            [I_con_E, False, weight_scale*20])
+                                                                            [I_con_E, False, weight_scale*16])
     # E_ws = normalise_weight(E_ws)
 
 
@@ -477,6 +483,15 @@ def calculation_function(params):
     # -----------------------------------------run-------------------------------------------------
     # one_pic = fire_data[32,...]
     one_pic = fire_data
+
+    
+    # use last weights
+    with open(path + "/Spiking_NN/datasets/SNN_states/test_state.pkl", "rb") as f:
+    # with open(path + "fire_data_gabor_binary.pkl", "rb") as f:
+        states = pickle.load(f)
+    E_ws = states["E_ws"]
+    # I_ws = states["I_ws"]
+    # Out_ws = states["Out_ws"]
 
     dims = list(range(one_pic.ndim))
     new_order = [dims[-1]] + dims[:-1]
@@ -498,6 +513,7 @@ def calculation_function(params):
             print(t)
             data = {
                 'In_fires': In_fires*100,
+                # 'In_fires': In_fires,
                 'E_fires': E_fires,
                 'I_fires': I_fires,
                 'Out_fires': Out_fires
@@ -535,7 +551,6 @@ def calculation_function(params):
 
         E_states = update_states(E_mp, E_states) 
         E_es, E_g_decays, E_g_rises, E_gPs = update_gPs(E_es, E_ws, E_g_decays, E_g_rises, [In_fire, E_fire, I_fire], 1)
-        
 
 
         I_states = update_states(I_mp, I_states)
@@ -570,24 +585,25 @@ def calculation_function(params):
             # using just multiplication
             interactions = torch.einsum('tijk,ab->ijkabt', past_pre_fires, E_fire)
             dw = (interactions*weight_values_matrix).sum(dim=-1)[0]
-            E_ws[0][0] += dw*learning_rate
+            E_ws[0][0] += dw
 
-        # only normalise the In to E connection's AMPA connection hence the [0][0]
-        # E_ws[0][0] = E_ws[0][0]/E_ws[0][0].sum(dim=(0,1,2), keepdim=True)*weight_scale*5
+        # # only normalise the In to E connection's AMPA connection hence the [0][0]
+        # # E_ws[0][0] = E_ws[0][0]/E_ws[0][0].sum(dim=(0,1,2), keepdim=True)*weight_scale*5
         sums = E_ws[0][0].sum(dim=(0,1,2), keepdim=True)   # sum over presyn dims for each post neuron
-        E_ws[0][0] = E_ws[0][0] / sums * (weight_scale * 5 / (E_ws[0][0].shape[2]*E_ws[0][0].shape[3])) #----this step looks weird
-
+        # # E_ws[0][0] = E_ws[0][0] / sums * (weight_scale * 5 / (E_ws[0][0].shape[2]*E_ws[0][0].shape[3])) #----this step looks weird
+        E_ws[0][0] = E_ws[0][0]/sums*learning_rate*10
 
 
 
         # voltages.append(E_mp[10,10].cpu()-70)
 
-    data = {
-        'In_fires': In_fires*100,
-        'E_fires': E_fires,
-        'I_fires': I_fires,
-        'Out_fires': Out_fires
-    }
+    # data = {
+    #     'In_fires': In_fires*100,
+    #     # 'In_fires': In_fires,
+    #     'E_fires': E_fires,
+    #     'I_fires': I_fires,
+    #     'Out_fires': Out_fires
+    # }
 
     # skip showing the silence part between 600 - 1500
     # data = {
@@ -597,7 +613,21 @@ def calculation_function(params):
     #     'Out_fires': torch.cat([Out_fires[:600], Out_fires[1501:2500], Out_fires[3200:]], dim=0)
     # }
 
-    # with open(path + 'large_files/fires_new.pkl', 'wb') as f:
-    #     pickle.dump(data, f)
+    data = {
+        'In_fires': In_fires[1500:]*100,
+        # 'In_fires': In_fires,
+        'E_fires': E_fires[1500:],
+        'I_fires': I_fires[1500:],
+        'Out_fires': Out_fires[1500:]
+    }
+
+    # states ={
+    #     'E_ws': E_ws,
+    #     'I_ws': I_ws,
+    #     'Out_ws': Out_ws
+    # }
+
+    # with open(path + 'Spiking_NN/datasets/SNN_states/test_state.pkl', 'wb') as f:
+    #     pickle.dump(states, f)
     
     return data
