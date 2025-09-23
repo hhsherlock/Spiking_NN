@@ -17,12 +17,14 @@ def calculation_function(params):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # with open(path + "fire_data_10p_8f_non_zero_background.pkl", "rb") as f:
-    # with open(path + "fire_data_gabor_binary_rotate.pkl", "rb") as f:
-    with open(path + "fire_data_gabor_binary.pkl", "rb") as f:
+    with open(path + "fire_data_gabor_binary_rotate.pkl", "rb") as f:
+    # with open(path + "fire_data_gabor_binary_two.pkl", "rb") as f:
         fire_data = pickle.load(f)
+    
+    train = False
 
     fire_data = torch.tensor(fire_data, device=device).float()
-    # fire_data = fire_data[...,:3000]
+    fire_data = fire_data[6,...,:2500]
     one_pic = fire_data
     # for a quicker testing
     # fire_data = fire_data[25,...,:3000]
@@ -481,14 +483,14 @@ def calculation_function(params):
 
     # -----------------------------------------run-------------------------------------------------
 
-    # states = {}
-    # states["initial_E_ws"] = E_ws[0][0].detach().clone()
-    
-    # use last weights
-    with open(path + "/Spiking_NN/datasets/SNN_states/test_state.pkl", "rb") as f:
-    # with open(path + "fire_data_gabor_binary.pkl", "rb") as f:
-        states = pickle.load(f)
-    E_ws[0][0] = states["E_ws"]
+    if not train:
+        # # use last weights
+        with open(path + "/Spiking_NN/datasets/SNN_states/train_two.pkl", "rb") as f:
+        # with open(path + "fire_data_gabor_binary.pkl", "rb") as f:
+            states = pickle.load(f)
+        E_ws[0][0] = states["E_ws"]
+        # I_ws = states["I_ws"]
+        # Out_ws = states["Out_ws"]
 
 
 
@@ -579,12 +581,13 @@ def calculation_function(params):
         # get the matrix of needed to change weight from the cons (Q: including the current time step?)
         # take only the 400 time step before, equals to 20ms, which is the learning period in the paper
         # for now update after 400 time steps 
-        if t >= 400:
-            past_pre_fires = In_fires[t-399:t+1,:,:,:]
-            # using just multiplication
-            interactions = torch.einsum('tijk,ab->ijkabt', past_pre_fires, E_fire)
-            dw = (interactions*weight_values_matrix).sum(dim=-1)[0]
-            E_ws[0][0] += dw
+        if train:
+            if t >= 400:
+                past_pre_fires = In_fires[t-399:t+1,:,:,:]
+                # using just multiplication
+                interactions = torch.einsum('tijk,ab->ijkabt', past_pre_fires, E_fire)
+                dw = (interactions*weight_values_matrix).sum(dim=-1)[0]
+                E_ws[0][0] += dw
 
         # # only normalise the In to E connection's AMPA connection hence the [0][0]
         # # E_ws[0][0] = E_ws[0][0]/E_ws[0][0].sum(dim=(0,1,2), keepdim=True)*weight_scale*5
@@ -613,17 +616,24 @@ def calculation_function(params):
     # }
 
     # data = {
-    #     'In_fires': In_fires[500:]*100,
+    #     'In_fires': In_fires[1600:]*100,
     #     # 'In_fires': In_fires,
-    #     'E_fires': E_fires[500:],
-    #     'I_fires': I_fires[500:],
-    #     'Out_fires': Out_fires[500:]
+    #     'E_fires': E_fires[1600:],
+    #     'I_fires': I_fires[1600:],
+    #     'Out_fires': Out_fires[1600:]
     # }
 
+    if train:
+        states = {}
+        states["E_ws"] = E_ws[0][0].detach().clone()
+        # states = {
+        #     "E_ws": E_ws
+        #     # "I_ws": I_ws,
+        #     # "Out_ws": Out_ws
+        # }
 
-    # states["E_ws"] = E_ws[0][0].detach().clone()
 
-    # with open(path + 'Spiking_NN/datasets/SNN_states/test_state.pkl', 'wb') as f:
-    #     pickle.dump(states, f)
+        with open(path + 'Spiking_NN/datasets/SNN_states/train_two.pkl', 'wb') as f:
+            pickle.dump(states, f)
     
     return data
