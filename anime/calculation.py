@@ -22,7 +22,7 @@ def calculation_function(params):
         fire_data = pickle.load(f)
 
     fire_data = torch.tensor(fire_data, device=device).float()
-    fire_data = fire_data[...,:4000]
+    # fire_data = fire_data[...,:3000]
     one_pic = fire_data
     # for a quicker testing
     # fire_data = fire_data[25,...,:3000]
@@ -72,7 +72,6 @@ def calculation_function(params):
     pointCount = fire_data.shape[-1]
 
     # siemens unit n_s
-    min_current = 0
     # gMax_AMPA = 0.00072
     # gMax_NMDA = 0.0012
     # gMax_GABA = 0.0004
@@ -323,7 +322,6 @@ def calculation_function(params):
 
 
     def update_I_E(mp, gPs, states):
-        nonlocal min_current
 
         # generate currents based on gPs
         cycle = len(gPs)
@@ -342,8 +340,6 @@ def calculation_function(params):
 
 
         Ireceptors = AMPA_currents + NMDA_currents + GABA_currents
-        if Ireceptors.min() < min_current:
-            min_current = Ireceptors.min()
 
         # Ireceptors[Ireceptors >= 0] = 0.0
 
@@ -466,6 +462,9 @@ def calculation_function(params):
                                                                             [E_con_E, True, weight_scale], 
                                                                             [I_con_E, False, weight_scale*16])
     # E_ws = normalise_weight(E_ws)
+    # this normalise step is not very necessary but meh 
+    sums = E_ws[0][0].sum(dim=(0,1,2), keepdim=True)   # sum over presyn dims for each post neuron
+    E_ws[0][0] = E_ws[0][0]/sums*learning_rate*10
 
 
     #----------I-----------------
@@ -481,17 +480,17 @@ def calculation_function(params):
     # Out_ws = normalise_weight(Out_ws)
 
     # -----------------------------------------run-------------------------------------------------
-    # one_pic = fire_data[32,...]
-    one_pic = fire_data
 
+    # states = {}
+    # states["initial_E_ws"] = E_ws[0][0].detach().clone()
     
     # use last weights
     with open(path + "/Spiking_NN/datasets/SNN_states/test_state.pkl", "rb") as f:
     # with open(path + "fire_data_gabor_binary.pkl", "rb") as f:
         states = pickle.load(f)
-    E_ws = states["E_ws"]
-    # I_ws = states["I_ws"]
-    # Out_ws = states["Out_ws"]
+    E_ws[0][0] = states["E_ws"]
+
+
 
     dims = list(range(one_pic.ndim))
     new_order = [dims[-1]] + dims[:-1]
@@ -597,13 +596,13 @@ def calculation_function(params):
 
         # voltages.append(E_mp[10,10].cpu()-70)
 
-    # data = {
-    #     'In_fires': In_fires*100,
-    #     # 'In_fires': In_fires,
-    #     'E_fires': E_fires,
-    #     'I_fires': I_fires,
-    #     'Out_fires': Out_fires
-    # }
+    data = {
+        'In_fires': In_fires*100,
+        # 'In_fires': In_fires,
+        'E_fires': E_fires,
+        'I_fires': I_fires,
+        'Out_fires': Out_fires
+    }
 
     # skip showing the silence part between 600 - 1500
     # data = {
@@ -613,19 +612,16 @@ def calculation_function(params):
     #     'Out_fires': torch.cat([Out_fires[:600], Out_fires[1501:2500], Out_fires[3200:]], dim=0)
     # }
 
-    data = {
-        'In_fires': In_fires[1500:]*100,
-        # 'In_fires': In_fires,
-        'E_fires': E_fires[1500:],
-        'I_fires': I_fires[1500:],
-        'Out_fires': Out_fires[1500:]
-    }
-
-    # states ={
-    #     'E_ws': E_ws,
-    #     'I_ws': I_ws,
-    #     'Out_ws': Out_ws
+    # data = {
+    #     'In_fires': In_fires[500:]*100,
+    #     # 'In_fires': In_fires,
+    #     'E_fires': E_fires[500:],
+    #     'I_fires': I_fires[500:],
+    #     'Out_fires': Out_fires[500:]
     # }
+
+
+    # states["E_ws"] = E_ws[0][0].detach().clone()
 
     # with open(path + 'Spiking_NN/datasets/SNN_states/test_state.pkl', 'wb') as f:
     #     pickle.dump(states, f)
