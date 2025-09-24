@@ -17,47 +17,16 @@ def calculation_function(params):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # with open(path + "fire_data_10p_8f_non_zero_background.pkl", "rb") as f:
-    with open(path + "fire_data_gabor_binary_rotate.pkl", "rb") as f:
+    with open(path + "fire_data_gabor_binary_rotate_6000.pkl", "rb") as f:
     # with open(path + "fire_data_gabor_binary_two.pkl", "rb") as f:
         fire_data = pickle.load(f)
     
     train = False
 
     fire_data = torch.tensor(fire_data, device=device).float()
-    fire_data = fire_data[6,...,:2500]
+    fire_data = fire_data[1,...]
     one_pic = fire_data
-    # for a quicker testing
-    # fire_data = fire_data[25,...,:3000]
-    # fire_data = fire_data[25]
 
-
-    # num_same = 1
-    # num_tstp = 1600
-    # # with open(path + "fire_data_10p_8f_non_zero_background.pkl", "rb") as f:
-    # with open(path + "fire_data_10p_8f_rotate_one.pkl", "rb") as f:
-    #     fire_data = pickle.load(f)
-
-    # fire_data = torch.tensor(fire_data, device=device).float()
-
-    # # # for a quicker testing
-    # # fire_data = fire_data[...,:3000]
-
-    # fire_data = fire_data[:num_same,...,:num_tstp]
-    # temp = fire_data.permute(1,2,3,0,4)
-    # fire_data = temp.reshape(10,10,8,num_same*num_tstp)
-
-    # #-------------load the new number----------------------
-    # # with open(path + "fire_data_10p_8f_non_zero_background.pkl", "rb") as f:
-    # with open(path + "fire_data_10p_8f_two.pkl", "rb") as f:
-    #     two_data = pickle.load(f)
-    # two_data = torch.tensor(two_data, device=device).float()
-
-    # two_data = two_data[...,1000:5000]
-    # two_data = two_data[0]
-    # fire_data = two_data
-    # # fire_data = torch.cat([fire_data, two_data], dim=-1)
-
-    spontaneous_mp = 30
 
     # parameters
     gMax_Na = 120
@@ -485,10 +454,11 @@ def calculation_function(params):
 
     if not train:
         # # use last weights
-        with open(path + "/Spiking_NN/datasets/SNN_states/train_two.pkl", "rb") as f:
+        with open(path + "/Spiking_NN/datasets/SNN_states/good_states.pkl", "rb") as f:
         # with open(path + "fire_data_gabor_binary.pkl", "rb") as f:
             states = pickle.load(f)
-        E_ws[0][0] = states["E_ws"]
+        # E_ws[0][0] = states["E_ws"][0][0]
+        E_ws = states["E_ws"]
         # I_ws = states["I_ws"]
         # Out_ws = states["Out_ws"]
 
@@ -625,7 +595,12 @@ def calculation_function(params):
 
     if train:
         states = {}
+        # after_E_ws = []
+        # for i in E_ws:
+        #     after_E_ws.append(i.detach().clone())
+        # states["E_ws"] = after_E_ws
         states["E_ws"] = E_ws[0][0].detach().clone()
+        
         # states = {
         #     "E_ws": E_ws
         #     # "I_ws": I_ws,
