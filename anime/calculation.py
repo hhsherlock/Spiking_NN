@@ -24,7 +24,7 @@ def calculation_function(params):
     train = False
 
     fire_data = torch.tensor(fire_data, device=device).float()
-    fire_data = fire_data[1,...]
+    fire_data = fire_data[0,...]
     one_pic = fire_data
 
 
@@ -449,12 +449,33 @@ def calculation_function(params):
     Out_cells, Out_states, Out_mp, Out_es, Out_ws, Out_g_decays, Out_g_rises = initialise(Out_num, 
                                                                                           [E_con_Out, True, weight_scale])
     # Out_ws = normalise_weight(Out_ws)
+    if train:
+        states = {}
+        initial_E_ws = []
+        for i in E_ws:
+            initial_E_ws.append(i.detach().clone())
+        states["initial_E_ws"] = initial_E_ws
 
+        initial_I_ws = []
+        for i in I_ws:
+            initial_I_ws.append(i.detach().clone())
+        states["initial_I_ws"] = initial_I_ws
+
+        initial_Out_ws = []
+        for i in Out_ws:
+            initial_Out_ws.append(i.detach().clone())
+        states["initial_Out_ws"] = initial_Out_ws
     # -----------------------------------------run-------------------------------------------------
+
+    # with open(path + "/Spiking_NN/datasets/SNN_states/pretty_good_states.pkl", "rb") as f:
+    #     test_states = pickle.load(f)
+    
+    # # I_ws = test_states["initial_I_ws"]
+    # E_ws[0][0] = test_states["initial_E_ws"][0][0]
 
     if not train:
         # # use last weights
-        with open(path + "/Spiking_NN/datasets/SNN_states/good_states.pkl", "rb") as f:
+        with open(path + "/Spiking_NN/datasets/SNN_states/train_self_drew.pkl", "rb") as f:
         # with open(path + "fire_data_gabor_binary.pkl", "rb") as f:
             states = pickle.load(f)
         # E_ws[0][0] = states["E_ws"][0][0]
@@ -594,12 +615,11 @@ def calculation_function(params):
     # }
 
     if train:
-        states = {}
-        # after_E_ws = []
-        # for i in E_ws:
-        #     after_E_ws.append(i.detach().clone())
-        # states["E_ws"] = after_E_ws
-        states["E_ws"] = E_ws[0][0].detach().clone()
+        after_E_ws = []
+        for i in E_ws:
+            after_E_ws.append(i.detach().clone())
+        states["E_ws"] = after_E_ws
+        # states["E_ws"] = E_ws[0][0].detach().clone()
         
         # states = {
         #     "E_ws": E_ws
@@ -608,7 +628,7 @@ def calculation_function(params):
         # }
 
 
-        with open(path + 'Spiking_NN/datasets/SNN_states/train_two.pkl', 'wb') as f:
+        with open(path + 'Spiking_NN/datasets/SNN_states/train_self_drew.pkl', 'wb') as f:
             pickle.dump(states, f)
     
     return data
