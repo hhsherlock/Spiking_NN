@@ -17,14 +17,15 @@ def calculation_function(params):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # with open(path + "fire_data_10p_8f_non_zero_background.pkl", "rb") as f:
-    with open(path + "fire_data_gabor_binary_rotate_6000.pkl", "rb") as f:
+    with open(path + "fire_data_gabor_binary_rotate_4000.pkl", "rb") as f:
+    # with open(path + "fire_data_gabor_binary_rotate_mix_diff.pkl", "rb") as f:
     # with open(path + "fire_data_gabor_binary_two.pkl", "rb") as f:
         fire_data = pickle.load(f)
     
     train = False
 
     fire_data = torch.tensor(fire_data, device=device).float()
-    fire_data = fire_data[0,...]
+    fire_data = fire_data[8,...,:4000]
     one_pic = fire_data
 
 
@@ -449,6 +450,23 @@ def calculation_function(params):
     Out_cells, Out_states, Out_mp, Out_es, Out_ws, Out_g_decays, Out_g_rises = initialise(Out_num, 
                                                                                           [E_con_Out, True, weight_scale])
     # Out_ws = normalise_weight(Out_ws)
+
+    # ------------------set to a good learning state-----------------------------------------
+    if train:
+        with open(path + "/Spiking_NN/datasets/SNN_states/pretty_good_states.pkl", "rb") as f:
+            test_states = pickle.load(f)
+        
+        # I_ws = test_states["initial_I_ws"]
+        E_ws = test_states["initial_E_ws"]
+
+    # #-------------------keep learning----------------------------------------------------------
+    # if train:
+    #     with open(path + "/Spiking_NN/datasets/SNN_states/train_3.pkl", "rb") as f:
+    #         test_states = pickle.load(f)
+        
+    #     # I_ws = test_states["initial_I_ws"]
+    #     E_ws = test_states["E_ws"]
+
     if train:
         states = {}
         initial_E_ws = []
@@ -467,15 +485,10 @@ def calculation_function(params):
         states["initial_Out_ws"] = initial_Out_ws
     # -----------------------------------------run-------------------------------------------------
 
-    # with open(path + "/Spiking_NN/datasets/SNN_states/pretty_good_states.pkl", "rb") as f:
-    #     test_states = pickle.load(f)
-    
-    # # I_ws = test_states["initial_I_ws"]
-    # E_ws[0][0] = test_states["initial_E_ws"][0][0]
 
     if not train:
         # # use last weights
-        with open(path + "/Spiking_NN/datasets/SNN_states/train_self_drew.pkl", "rb") as f:
+        with open(path + "/Spiking_NN/datasets/SNN_states/train_z.pkl", "rb") as f:
         # with open(path + "fire_data_gabor_binary.pkl", "rb") as f:
             states = pickle.load(f)
         # E_ws[0][0] = states["E_ws"][0][0]
@@ -578,7 +591,7 @@ def calculation_function(params):
                 # using just multiplication
                 interactions = torch.einsum('tijk,ab->ijkabt', past_pre_fires, E_fire)
                 dw = (interactions*weight_values_matrix).sum(dim=-1)[0]
-                E_ws[0][0] += dw
+                E_ws[0][0] += dw #*(1/(1+0.07*(t-400)))
 
         # # only normalise the In to E connection's AMPA connection hence the [0][0]
         # # E_ws[0][0] = E_ws[0][0]/E_ws[0][0].sum(dim=(0,1,2), keepdim=True)*weight_scale*5
@@ -628,7 +641,7 @@ def calculation_function(params):
         # }
 
 
-        with open(path + 'Spiking_NN/datasets/SNN_states/train_self_drew.pkl', 'wb') as f:
+        with open(path + 'Spiking_NN/datasets/SNN_states/train_z.pkl', 'wb') as f:
             pickle.dump(states, f)
     
     return data
