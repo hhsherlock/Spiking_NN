@@ -17,7 +17,7 @@ def calculation_function(params):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # with open(path + "fire_data_10p_8f_non_zero_background.pkl", "rb") as f:
-    with open(path + "fire_data_mnst_nine.pkl", "rb") as f:
+    with open(path + "fire_data_mnst_one.pkl", "rb") as f:
     # with open(path + "fire_data_gabor_binary_rotate_mix_diff.pkl", "rb") as f:
     # with open(path + "fire_data_gabor_binary_two.pkl", "rb") as f:
         fire_data = pickle.load(f)
@@ -459,13 +459,13 @@ def calculation_function(params):
     #     # I_ws = test_states["initial_I_ws"]
     #     E_ws = test_states["initial_E_ws"]
 
-    # #-------------------keep learning----------------------------------------------------------
-    # if train:
-    #     with open(path + "/Spiking_NN/datasets/SNN_states/train_3.pkl", "rb") as f:
-    #         test_states = pickle.load(f)
+    #-------------------keep learning----------------------------------------------------------
+    if train:
+        with open(path + "/Spiking_NN/datasets/SNN_states/train_nine.pkl", "rb") as f:
+            last_states = pickle.load(f)
         
-    #     # I_ws = test_states["initial_I_ws"]
-    #     E_ws = test_states["E_ws"]
+        # I_ws = test_states["initial_I_ws"]
+        E_ws = last_states["E_ws"]
 
     if train:
         states = {}
@@ -488,7 +488,7 @@ def calculation_function(params):
 
     if not train:
         # # use last weights
-        with open(path + "/Spiking_NN/datasets/SNN_states/train_zero.pkl", "rb") as f:
+        with open(path + "/Spiking_NN/datasets/SNN_states/train_nine.pkl", "rb") as f:
         # with open(path + "fire_data_gabor_binary.pkl", "rb") as f:
             states = pickle.load(f)
         # E_ws[0][0] = states["E_ws"][0][0]
@@ -641,7 +641,7 @@ def calculation_function(params):
         # }
 
 
-        with open(path + 'Spiking_NN/datasets/SNN_states/train_zero.pkl', 'wb') as f:
+        with open(path + 'Spiking_NN/datasets/SNN_states/train_nine.pkl', 'wb') as f:
             pickle.dump(states, f)
     
     return data
