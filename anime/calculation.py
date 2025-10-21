@@ -17,14 +17,14 @@ def calculation_function(params):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # with open(path + "fire_data_10p_8f_non_zero_background.pkl", "rb") as f:
-    with open(path + "fire_data_mnst_nine_three.pkl", "rb") as f:
+    with open(path + "fire_data_mnst_two.pkl", "rb") as f:
     # with open(path + "fire_data_gabor_binary_rotate_mix_diff.pkl", "rb") as f:
     # with open(path + "fire_data_gabor_binary_two.pkl", "rb") as f:
         fire_data = pickle.load(f)
     
-    train = True
-    save_train_file = "train_nine_three.pkl"
-    use_train_file = "train_nine_three.pkl"
+    train = False
+    save_train_file = "train_nine_with_zero.pkl"
+    use_train_file = "train_nine_with_zero.pkl"
 
     fire_data = torch.tensor(fire_data, device=device).float()
     # fire_data = fire_data[8,...,:4000]
@@ -453,21 +453,21 @@ def calculation_function(params):
                                                                                           [E_con_Out, True, weight_scale])
     # Out_ws = normalise_weight(Out_ws)
 
-    # ------------------set to a good learning state-----------------------------------------
-    if train:
-        with open(path + "/Spiking_NN/datasets/SNN_states/pretty_good_states.pkl", "rb") as f:
-            test_states = pickle.load(f)
-        
-        # I_ws = test_states["initial_I_ws"]
-        E_ws = test_states["initial_E_ws"]
-
-    # #-------------------keep learning----------------------------------------------------------
+    # # ------------------set to a good learning state-----------------------------------------
     # if train:
-    #     with open(path + "/Spiking_NN/datasets/SNN_states/train_nine.pkl", "rb") as f:
-    #         last_states = pickle.load(f)
+    #     with open(path + "/Spiking_NN/datasets/SNN_states/pretty_good_states.pkl", "rb") as f:
+    #         test_states = pickle.load(f)
         
     #     # I_ws = test_states["initial_I_ws"]
-    #     E_ws = last_states["E_ws"]
+    #     E_ws = test_states["initial_E_ws"]
+
+    #-------------------keep learning----------------------------------------------------------
+    if train:
+        with open(path + "/Spiking_NN/datasets/SNN_states/train_nine.pkl", "rb") as f:
+            last_states = pickle.load(f)
+        
+        # I_ws = test_states["initial_I_ws"]
+        E_ws = last_states["E_ws"]
 
     if train:
         states = {}
