@@ -17,7 +17,7 @@ def calculation_function(params):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # with open(path + "fire_data_10p_8f_non_zero_background.pkl", "rb") as f:
-    with open(path + "fire_data_mnst_two.pkl", "rb") as f:
+    with open(path + "fire_data_mnst_six.pkl", "rb") as f:
     # with open(path + "fire_data_gabor_binary_rotate_mix_diff.pkl", "rb") as f:
     # with open(path + "fire_data_gabor_binary_two.pkl", "rb") as f:
         fire_data = pickle.load(f)

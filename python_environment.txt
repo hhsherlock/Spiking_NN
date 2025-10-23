@@ -3,3 +3,8 @@ conda activate spike
 nohup bash run.sh > test.out 2>&1 &
 
 source /home/yaning/Documents/python_envs/spike/bin/activate
+
+
+self.self_attention(target, target, target, attn_mask=target_mask)
+self.multihead_attention(target, memory, memory, attn_mask=memory_mask)
+
