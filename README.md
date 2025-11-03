@@ -10,6 +10,7 @@ This project is based on the paper by Michler, Eckhorn and Wachtler (https://pub
 # Current (until 15.01): 
 - The neurons and networks are working okay.
 - Ligand-gated and ion channels are added (should we add more or probably not)
+- The network generates EEG like activities ![EEG](EEG.png)
 
 # Next Step:
 - Find parameters, with MCMC or with interactive plot, Q: what is a good firing pattern and does it differ with different types or functions of neurons.
