@@ -22,9 +22,9 @@ def calculation_function(params):
     # with open(path + "fire_data_gabor_binary_two.pkl", "rb") as f:
         fire_data = pickle.load(f)
     
-    train = False
-    save_train_file = "train_nine_with_zero.pkl"
-    use_train_file = "train_nine_with_zero.pkl"
+    train = True
+    save_train_file = "train_test_E40.pkl"
+    use_train_file = "train_test_E40.pkl"
 
     fire_data = torch.tensor(fire_data, device=device).float()
     # fire_data = fire_data[8,...,:4000]
@@ -338,7 +338,7 @@ def calculation_function(params):
 
     pixel_num = 10
     feature_num = 8
-    E_num = 20
+    E_num = 40
     I_num = 4
     Out_num = 5
 
@@ -413,7 +413,7 @@ def calculation_function(params):
     # ampa
     E_con_Out = torch.zeros(E_num, E_num, Out_num, Out_num, device=device)
     sigma_E_Out = 2
-    max_E_Out = 1
+    max_E_Out = 10
     # find the center point from Output to E
     ratio = E_num/Out_num
     for i in range(E_num):
@@ -425,6 +425,7 @@ def calculation_function(params):
 
                     euc_distance = math.sqrt((project_center_x - i)**2 + (project_center_y - j)**2)
                     E_con_Out[i,j,k,l] = max_E_Out*math.exp(-0.5*(euc_distance/sigma_E_Out)**2)
+
     E_con_Out = E_con_Out.unsqueeze(0).repeat(3,1,1,1,1)
     E_con_Out[1] = 0
     E_con_Out[2] = 0
@@ -461,13 +462,13 @@ def calculation_function(params):
     #     # I_ws = test_states["initial_I_ws"]
     #     E_ws = test_states["initial_E_ws"]
 
-    #-------------------keep learning----------------------------------------------------------
-    if train:
-        with open(path + "/Spiking_NN/datasets/SNN_states/train_nine.pkl", "rb") as f:
-            last_states = pickle.load(f)
+    # #-------------------keep learning----------------------------------------------------------
+    # if train:
+    #     with open(path + "/Spiking_NN/datasets/SNN_states/train_nine.pkl", "rb") as f:
+    #         last_states = pickle.load(f)
         
-        # I_ws = test_states["initial_I_ws"]
-        E_ws = last_states["E_ws"]
+    #     # I_ws = test_states["initial_I_ws"]
+    #     E_ws = last_states["E_ws"]
 
     if train:
         states = {}
@@ -519,11 +520,11 @@ def calculation_function(params):
             print("oops")
             print(t)
             data = {
-                'In_fires': In_fires*100,
+                'In_fires': In_fires[500:]*100,
                 # 'In_fires': In_fires,
-                'E_fires': E_fires,
-                'I_fires': I_fires,
-                'Out_fires': Out_fires
+                'E_fires': E_fires[500:],
+                'I_fires': I_fires[500:],
+                'Out_fires': Out_fires[500:]
             }
 
             # with open(path + 'large_files/fires_new.pkl', 'wb') as f:
@@ -605,12 +606,23 @@ def calculation_function(params):
 
         # voltages.append(E_mp[10,10].cpu()-70)
 
+    # # try just sum up the activities
+    # size = 4
+    # sum_E_fires = torch.zeros((4000,5,5))
+    # for i in range(5):
+    #     for j in range(5):
+    #         sub_array = E_fires[:, i*size:i*size+size, j*size:j*size+size]
+    #         temp_sum = sub_array.sum(dim=(1,2))
+    #         sum_E_fires[:,i,j] = temp_sum
+
     data = {
-        'In_fires': In_fires*100,
+        'In_fires': In_fires[500:]*100,
         # 'In_fires': In_fires,
-        'E_fires': E_fires,
-        'I_fires': I_fires,
-        'Out_fires': Out_fires
+        'E_fires': E_fires[500:],
+        'I_fires': I_fires[500:],
+        'Out_fires': Out_fires[500:]
+        
+        # 'Out_fires': sum_E_fires/18
     }
 
     # skip showing the silence part between 600 - 1500

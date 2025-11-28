@@ -49,19 +49,20 @@ path = "/home/yaning/Documents/"
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # with open(path + "fire_data_10p_8f_non_zero_background.pkl", "rb") as f:
-with open(path + "fire_data_mnst_all_hunni.pkl", "rb") as f:
+with open(path + "Spiking_add_files/fire_data_mnst_all.pkl", "rb") as f:
 # with open(path + "fire_data_gabor_binary_rotate_mix_diff.pkl", "rb") as f:
 # with open(path + "fire_data_gabor_binary_two.pkl", "rb") as f:
     fire_data = pickle.load(f)
 
-train = False
+train = True
+keep_learning = True
 
 fire_data = torch.tensor(fire_data, device=device).float()
 
-save_train_file = "train_nine.pkl"
-use_train_file = "train_nine_three.pkl"
+train_file = "train_multi_E40.pkl"
 
-EEG = []
+
+# EEG = []
 
 for pic_index in range(fire_data.shape[0]):
     one_pic = fire_data[pic_index]
@@ -497,15 +498,16 @@ for pic_index in range(fire_data.shape[0]):
     #     # I_ws = test_states["initial_I_ws"]
     #     E_ws = test_states["initial_E_ws"]
 
-    # #-------------------keep learning----------------------------------------------------------
-    # if train:
-    #     with open(path + "/Spiking_NN/datasets/SNN_states/train_zero.pkl", "rb") as f:
-    #         last_states = pickle.load(f)
+    #-------------------keep learning----------------------------------------------------------
+    if keep_learning and pic_index != 0:
+        with open(path + "Spiking_NN/datasets/SNN_states/" + train_file, "rb") as f:
+            last_states = pickle.load(f)
         
-    #     # I_ws = test_states["initial_I_ws"]
-    #     E_ws = last_states["E_ws"]
+        # I_ws = test_states["initial_I_ws"]
+        E_ws = last_states["E_ws"]
 
-    if train:
+    # only learn the initial values for the first round
+    if train and pic_index==0:
         states = {}
         initial_E_ws = []
         for i in E_ws:
@@ -526,7 +528,7 @@ for pic_index in range(fire_data.shape[0]):
 
     if not train:
         # # use last weights
-        with open(path + "/Spiking_NN/datasets/SNN_states/" + use_train_file, "rb") as f:
+        with open(path + "Spiking_NN/datasets/SNN_states/" + train_file, "rb") as f:
         # with open(path + "fire_data_gabor_binary.pkl", "rb") as f:
             states = pickle.load(f)
         # E_ws[0][0] = states["E_ws"][0][0]
@@ -561,6 +563,7 @@ for pic_index in range(fire_data.shape[0]):
                 'I_fires': I_fires,
                 'Out_fires': Out_fires
             }
+            continue
 
             # with open(path + 'large_files/fires_new.pkl', 'wb') as f:
             #     pickle.dump(data, f)
@@ -685,17 +688,20 @@ for pic_index in range(fire_data.shape[0]):
         # }
 
 
-        with open(path + 'Spiking_NN/datasets/SNN_states/' + save_train_file, 'wb') as f:
+        with open(path + 'Spiking_NN/datasets/SNN_states/' + train_file, 'wb') as f:
             pickle.dump(states, f)
+
+        print(states["E_ws"][0][0])
+
     print(pic_index)
-    sum = E_fires.sum(dim=(1,2)) 
-    EEG.append(sum)
-    maxi = torch.max(sum[1000:1250])
-    if maxi > 25:
-        print("nine")
+    # sum = E_fires.sum(dim=(1,2)) 
+    # # EEG.append(sum)
+    # maxi = torch.max(sum[1000:1250])
+    # if maxi > 25:
+    #     print("nine")
     # print(maxi)
     # maximums.append(maxi)
     # print("actual number:" + str(imgs["tag"][pic_index]))
 
-with open(path + "Spiking_NN/datasets/EEG_hunni.pkl", "wb") as f:
-    pickle.dump(EEG, f)
+# with open(path + "Spiking_NN/datasets/EEG_hunni.pkl", "wb") as f:
+#     # pickle.dump(EEG, f)
