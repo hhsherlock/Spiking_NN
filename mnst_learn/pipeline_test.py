@@ -500,7 +500,7 @@ for pic_index in range(fire_data.shape[0]):
 
     #-------------------keep learning----------------------------------------------------------
     if keep_learning and pic_index != 0:
-        with open(path + "Spiking_NN/datasets/SNN_states/" + train_file, "rb") as f:
+        with open(path + "Spiking_add_files/" + train_file, "rb") as f:
             last_states = pickle.load(f)
         
         # I_ws = test_states["initial_I_ws"]
@@ -528,7 +528,7 @@ for pic_index in range(fire_data.shape[0]):
 
     if not train:
         # # use last weights
-        with open(path + "Spiking_NN/datasets/SNN_states/" + train_file, "rb") as f:
+        with open(path + "Spiking_add_files/" + train_file, "rb") as f:
         # with open(path + "fire_data_gabor_binary.pkl", "rb") as f:
             states = pickle.load(f)
         # E_ws[0][0] = states["E_ws"][0][0]
