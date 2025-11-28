@@ -688,10 +688,10 @@ for pic_index in range(fire_data.shape[0]):
         # }
 
 
-        with open(path + 'Spiking_NN/datasets/SNN_states/' + train_file, 'wb') as f:
+        with open(path + 'Spiking_add_files/' + train_file, 'wb') as f:
             pickle.dump(states, f)
 
-        print(states["E_ws"][0][0])
+        # print(states["E_ws"][0][0])
 
     print(pic_index)
     # sum = E_fires.sum(dim=(1,2)) 
