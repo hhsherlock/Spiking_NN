@@ -49,17 +49,18 @@ path = "/home/yaning/Documents/"
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # with open(path + "fire_data_10p_8f_non_zero_background.pkl", "rb") as f:
-with open(path + "Spiking_add_files/fire_data_mnst_all.pkl", "rb") as f:
+with open(path + "Spiking_add_files/fire_data_nines_zeros.pkl", "rb") as f:
 # with open(path + "fire_data_gabor_binary_rotate_mix_diff.pkl", "rb") as f:
 # with open(path + "fire_data_gabor_binary_two.pkl", "rb") as f:
     fire_data = pickle.load(f)
 
 train = True
 keep_learning = True
+larger_E = False 
 
 fire_data = torch.tensor(fire_data, device=device).float()
 
-train_file = "train_multi_E40.pkl"
+train_file = "train_multi_E20.pkl"
 
 
 # EEG = []
@@ -375,7 +376,10 @@ for pic_index in range(fire_data.shape[0]):
 
     pixel_num = 10
     feature_num = 8
-    E_num = 20
+    if larger_E:
+        E_num = 40
+    else:
+        E_num = 20
     I_num = 4
     Out_num = 5
 
@@ -491,12 +495,12 @@ for pic_index in range(fire_data.shape[0]):
     # Out_ws = normalise_weight(Out_ws)
 
     # ------------------set to a good learning state-----------------------------------------
-    # if train:
-    #     with open(path + "/Spiking_NN/datasets/SNN_states/pretty_good_states.pkl", "rb") as f:
-    #         test_states = pickle.load(f)
+    if train and pic_index == 0:
+        with open(path + "/Spiking_NN/datasets/SNN_states/pretty_good_states.pkl", "rb") as f:
+            test_states = pickle.load(f)
         
-    #     # I_ws = test_states["initial_I_ws"]
-    #     E_ws = test_states["initial_E_ws"]
+        # I_ws = test_states["initial_I_ws"]
+        E_ws = test_states["initial_E_ws"]
 
     #-------------------keep learning----------------------------------------------------------
     if keep_learning and pic_index != 0:
@@ -563,7 +567,7 @@ for pic_index in range(fire_data.shape[0]):
                 'I_fires': I_fires,
                 'Out_fires': Out_fires
             }
-            continue
+            break
 
             # with open(path + 'large_files/fires_new.pkl', 'wb') as f:
             #     pickle.dump(data, f)

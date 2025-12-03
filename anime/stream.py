@@ -8,6 +8,9 @@ from calculation import calculation_function
 
 app = FastAPI()
 
+# bool param to decide if it is 20x20 or 40x40 for E layer
+larger_E = False
+
 data_event = asyncio.Event()
 shutdown_event = asyncio.Event()
 
@@ -39,27 +42,33 @@ for i in range(grid_H):
             })
 layer_id += 1
 
-# # Layer 2: 20x20 grid
-# grid_W, grid_H = 20,20
-# for i in range(grid_H):
-#     for j in range(grid_W):
-#         neuron_positions.append({
-#             'x': left_gap + j * spacing + 1500,  # Shift to the right to separate layers visually
-#             'y': top_gap + i * spacing,
-#             'layer': layer_id
-#         })
-# layer_id += 1
+if larger_E:
+    grid_W, grid_H = 40,40
+    for i in range(grid_H):
+        for j in range(grid_W):
+            neuron_positions.append({
+                'x': left_gap + j * spacing + 1000,  # Shift to the right to separate layers visually
+                'y': top_gap + i * spacing,
+                'layer': layer_id
+            })
+    layer_id += 1
+else:
+    # Layer 2: 20x20 grid
+    grid_W, grid_H = 20,20
+    for i in range(grid_H):
+        for j in range(grid_W):
+            neuron_positions.append({
+                'x': left_gap + j * spacing + 1500,  # Shift to the right to separate layers visually
+                'y': top_gap + i * spacing,
+                'layer': layer_id
+            })
+    layer_id += 1
 
-grid_W, grid_H = 40,40
-for i in range(grid_H):
-    for j in range(grid_W):
-        neuron_positions.append({
-            'x': left_gap + j * spacing + 1000,  # Shift to the right to separate layers visually
-            'y': top_gap + i * spacing,
-            'layer': layer_id
-        })
-layer_id += 1
 
+if larger_E:
+    temp_spacing = 1700
+else:
+    temp_spacing = 1000
 
 # Layer 3: 4x4 grid
 grid_W, grid_H = 4,4
@@ -68,7 +77,7 @@ for i in range(grid_H):
         neuron_positions.append({
             'x': left_gap + j * spacing + 1500,
             # 'y': top_gap + i * spacing + 1000,  # Shift downward
-            'y': top_gap + i * spacing + 1500,
+            'y': top_gap + i * spacing + temp_spacing,
             'layer': layer_id
         })
 layer_id += 1
@@ -80,7 +89,7 @@ for i in range(grid_H):
         neuron_positions.append({
             'x': left_gap + j * spacing + 2000,
             # 'y': top_gap + i * spacing + 1000,
-            'y': top_gap + i * spacing + 1500,
+            'y': top_gap + i * spacing + temp_spacing,
             'layer': layer_id
         })
 layer_id += 1

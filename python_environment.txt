@@ -1,6 +1,8 @@
 source /home/yaning/Documents/python_env/llm/bin/activate
 conda activate spike
 nohup bash run.sh > test.out 2>&1 &
+nohup python -u your_script.py > output.log 2>&1 & (add -u here is soooo important otherwise 
+the output log does not update for minutes!!)
 
 source /home/yaning/Documents/python_envs/spike/bin/activate
 

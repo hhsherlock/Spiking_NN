@@ -17,14 +17,14 @@ def calculation_function(params):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # with open(path + "fire_data_10p_8f_non_zero_background.pkl", "rb") as f:
-    with open(path + "Spiking_add_files/fire_data_mnst_two.pkl", "rb") as f:
+    with open(path + "Spiking_add_files/fire_data_mnst_zero.pkl", "rb") as f:
     # with open(path + "fire_data_gabor_binary_rotate_mix_diff.pkl", "rb") as f:
     # with open(path + "fire_data_gabor_binary_two.pkl", "rb") as f:
         fire_data = pickle.load(f)
     
-    train = True
-    save_train_file = "train_test_E40.pkl"
-    use_train_file = "train_test_E40.pkl"
+    larger_E = False
+    train = False
+    train_file = "train_multi_E20.pkl"
 
     fire_data = torch.tensor(fire_data, device=device).float()
     # fire_data = fire_data[8,...,:4000]
@@ -43,7 +43,7 @@ def calculation_function(params):
 
     deltaTms = 0.05
     Cm = 1
-    pointCount = fire_data.shape[-1]
+    pointCount = one_pic.shape[-1]
 
     # siemens unit n_s
     # gMax_AMPA = 0.00072
@@ -338,7 +338,9 @@ def calculation_function(params):
 
     pixel_num = 10
     feature_num = 8
-    E_num = 40
+    if larger_E:
+        E_num = 40
+    else: E_num = 20
     I_num = 4
     Out_num = 5
 
@@ -491,7 +493,7 @@ def calculation_function(params):
 
     if not train:
         # # use last weights
-        with open(path + "/Spiking_NN/datasets/SNN_states/" + use_train_file, "rb") as f:
+        with open(path + "Spiking_add_files/" + train_file, "rb") as f:
         # with open(path + "fire_data_gabor_binary.pkl", "rb") as f:
             states = pickle.load(f)
         # E_ws[0][0] = states["E_ws"][0][0]
@@ -615,15 +617,15 @@ def calculation_function(params):
     #         temp_sum = sub_array.sum(dim=(1,2))
     #         sum_E_fires[:,i,j] = temp_sum
 
-    data = {
-        'In_fires': In_fires[500:]*100,
-        # 'In_fires': In_fires,
-        'E_fires': E_fires[500:],
-        'I_fires': I_fires[500:],
-        'Out_fires': Out_fires[500:]
+    # data = {
+    #     'In_fires': In_fires*100,
+    #     # 'In_fires': In_fires,
+    #     'E_fires': E_fires,
+    #     'I_fires': I_fires,
+    #     'Out_fires': Out_fires
         
-        # 'Out_fires': sum_E_fires/18
-    }
+    #     # 'Out_fires': sum_E_fires/18
+    # }
 
     # skip showing the silence part between 600 - 1500
     # data = {
@@ -633,13 +635,13 @@ def calculation_function(params):
     #     'Out_fires': torch.cat([Out_fires[:600], Out_fires[1501:2500], Out_fires[3200:]], dim=0)
     # }
 
-    # data = {
-    #     'In_fires': In_fires[1600:]*100,
-    #     # 'In_fires': In_fires,
-    #     'E_fires': E_fires[1600:],
-    #     'I_fires': I_fires[1600:],
-    #     'Out_fires': Out_fires[1600:]
-    # }
+    data = {
+        'In_fires': In_fires[500:]*100,
+        # 'In_fires': In_fires,
+        'E_fires': E_fires[500:],
+        'I_fires': I_fires[500:],
+        'Out_fires': Out_fires[500:]
+    }
 
     if train:
         after_E_ws = []
@@ -655,7 +657,7 @@ def calculation_function(params):
         # }
 
 
-        with open(path + 'Spiking_NN/datasets/SNN_states/' + save_train_file, 'wb') as f:
+        with open(path + 'Spiking_NN/datasets/SNN_states/' + train_file, 'wb') as f:
             pickle.dump(states, f)
     
     return data
