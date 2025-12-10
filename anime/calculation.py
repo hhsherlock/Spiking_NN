@@ -17,9 +17,9 @@ def calculation_function(params):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # with open(path + "fire_data_10p_8f_non_zero_background.pkl", "rb") as f:
-    with open(path + "Spiking_add_files/fire_data_mnst_all_hunni_200-300.pkl", "rb") as f:
+    # with open(path + "Spiking_add_files/fire_data_mnst_all_hunni_200-300.pkl", "rb") as f:
     # with open(path + "fire_data_gabor_binary_rotate_mix_diff.pkl", "rb") as f:
-    # with open(path + "fire_data_gabor_binary_two.pkl", "rb") as f:
+    with open(path + "Spiking_add_files/fire_data_mnst_six.pkl", "rb") as f:
         fire_data = pickle.load(f)
     
     larger_E = False
@@ -28,7 +28,7 @@ def calculation_function(params):
 
     fire_data = torch.tensor(fire_data, device=device).float()
     # fire_data = fire_data[8,...,:4000]
-    one_pic = fire_data[13]
+    one_pic = fire_data
 
 
     # parameters
