@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Fri Jun 13
+Created on Thu Dec 18
 
 @author: yaning
 """
@@ -9,27 +9,56 @@ Created on Fri Jun 13
 import pickle
 import torch
 import math
+import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas as pd
+import numpy as np
+from scipy.ndimage import label
 
-def calculation_function(params):
+class Params:
+    def __init__(self):
+        self.u_se_ampa = 0.5
+        self.u_se_nmda = 0.5
+        self.u_se_gaba = 0.5
+        self.tau_rec_ampa = 5.0
+        self.tau_rec_nmda = 12.0
+        self.tau_rec_gaba = 12.0
+        # self.tau_rec_gaba = 3.0
+        self.tau_rise_ampa = 15.0
+        # self.tau_rise_ampa = 50.0
+        self.tau_rise_nmda = 150.0
+        self.tau_rise_gaba = 15.0
+        self.learning_rate = 1.0
+        self.weight_scale = 1.0
 
-    path = "/home/yaning/Documents/"
+params = Params()
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+def check_fire_lower(mp):
+    activeness = (mp > 20).float()
+    return activeness
 
-    # with open(path + "fire_data_10p_8f_non_zero_background.pkl", "rb") as f:
-    # with open(path + "Spiking_add_files/fire_data_mnst_all_hunni_200-300.pkl", "rb") as f:
-    # with open(path + "fire_data_gabor_binary_rotate_mix_diff.pkl", "rb") as f:
-    with open(path + "Spiking_add_files/fire_data_mnst_two.pkl", "rb") as f:
-        fire_data = pickle.load(f)
-    
-    larger_E = False
-    train = False
-    train_file = "train_multi_E20_zipper.pkl"
 
-    fire_data = torch.tensor(fire_data, device=device).float()
-    # fire_data = fire_data[8,...,:4000]
-    one_pic = fire_data
 
+path = "/home/yaning/Documents/"
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
+# with open(path + "fire_data_mnst_two.pkl", "rb") as f:
+with open(path + "Spiking_add_files/fire_data_mnst_all_hunni.pkl", "rb") as f:
+    fire_data = pickle.load(f)
+
+train = False
+keep_learning = False
+train_file = "train_multi_E20_zipper.pkl"
+
+fire_data = torch.tensor(fire_data, device=device).float()
+# fire_data = fire_data[5]
+# one_pic = fire_data
+labels_array = []
+
+for idx in range(fire_data.shape[0]):
+    one_pic = fire_data[idx]
 
     # parameters
     gMax_Na = 120
@@ -43,7 +72,7 @@ def calculation_function(params):
 
     deltaTms = 0.05
     Cm = 1
-    pointCount = one_pic.shape[-1]
+    pointCount = fire_data.shape[-1]
 
     # siemens unit n_s
     # gMax_AMPA = 0.00072
@@ -338,9 +367,7 @@ def calculation_function(params):
 
     pixel_num = 10
     feature_num = 8
-    if larger_E:
-        E_num = 40
-    else: E_num = 20
+    E_num = 20
     I_num = 4
     Out_num = 5
 
@@ -415,7 +442,7 @@ def calculation_function(params):
     # ampa
     E_con_Out = torch.zeros(E_num, E_num, Out_num, Out_num, device=device)
     sigma_E_Out = 2
-    max_E_Out = 10
+    max_E_Out = 1
     # find the center point from Output to E
     ratio = E_num/Out_num
     for i in range(E_num):
@@ -427,7 +454,6 @@ def calculation_function(params):
 
                     euc_distance = math.sqrt((project_center_x - i)**2 + (project_center_y - j)**2)
                     E_con_Out[i,j,k,l] = max_E_Out*math.exp(-0.5*(euc_distance/sigma_E_Out)**2)
-
     E_con_Out = E_con_Out.unsqueeze(0).repeat(3,1,1,1,1)
     E_con_Out[1] = 0
     E_con_Out[2] = 0
@@ -453,24 +479,24 @@ def calculation_function(params):
 
     #-----------Output-------------
     Out_cells, Out_states, Out_mp, Out_es, Out_ws, Out_g_decays, Out_g_rises = initialise(Out_num, 
-                                                                                          [E_con_Out, True, weight_scale])
+                                                                                            [E_con_Out, True, weight_scale])
     # Out_ws = normalise_weight(Out_ws)
 
     # # ------------------set to a good learning state-----------------------------------------
-    # if train:
+    # if train and not keep_learning:
     #     with open(path + "/Spiking_NN/datasets/SNN_states/pretty_good_states.pkl", "rb") as f:
     #         test_states = pickle.load(f)
         
     #     # I_ws = test_states["initial_I_ws"]
     #     E_ws = test_states["initial_E_ws"]
 
-    # #-------------------keep learning----------------------------------------------------------
-    # if train:
-    #     with open(path + "/Spiking_NN/datasets/SNN_states/train_nine.pkl", "rb") as f:
-    #         last_states = pickle.load(f)
+    #-------------------keep learning----------------------------------------------------------
+    if train and keep_learning:
+        with open(path + "/Spiking_NN/datasets/SNN_states/" + train_file, "rb") as f:
+            last_states = pickle.load(f)
         
-    #     # I_ws = test_states["initial_I_ws"]
-    #     E_ws = last_states["E_ws"]
+        # I_ws = test_states["initial_I_ws"]
+        E_ws = last_states["E_ws"]
 
     if train:
         states = {}
@@ -510,6 +536,7 @@ def calculation_function(params):
     I_fires = torch.zeros((pointCount, I_num, I_num), device=device)
     Out_fires = torch.zeros((pointCount, Out_num, Out_num), device=device)
 
+    oopse = False
 
     for t in range(pointCount):
         if t % 1000 == 0:  # every 50 steps
@@ -520,37 +547,45 @@ def calculation_function(params):
 
         if E_mp.isnan().any():
             print("oops")
+            oopse = True
             print(t)
             data = {
-                'In_fires': In_fires[500:]*100,
-                # 'In_fires': In_fires,
-                'E_fires': E_fires[500:],
-                'I_fires': I_fires[500:],
-                'Out_fires': Out_fires[500:]
+                # 'In_fires': In_fires*100,
+                'In_fires': In_fires,
+                'E_fires': E_fires,
+                'I_fires': I_fires,
+                'Out_fires': Out_fires
             }
+            break
 
             # with open(path + 'large_files/fires_new.pkl', 'wb') as f:
             #     pickle.dump(data, f)
             
-            return data
+
 
         # add spontaneous firing
         # mask = torch.rand(E_mp.shape) < 0.001
         # E_mp[mask] = spontaneous_mp
         E_fire = check_fire(E_mp)
+        E_fire_lower = check_fire_lower(E_mp)
+        E_fires[t] = E_fire_lower
         # E_fires[t] = E_fire
-        E_fires[t] = E_mp
+        # E_fires[t] = E_mp
 
 
         # mask = torch.rand(I_mp.shape) < 0.001
         # I_mp[mask] = spontaneous_mp
         I_fire = check_fire(I_mp)
+        # I_fire_lower = check_fire_lower(I_mp)
+        # I_fires[t] = I_fire_lower
         # I_fires[t] = I_fire
         I_fires[t] = I_mp
         
         # mask = torch.rand(Out_mp.shape) < 0.001
         # Out_mp[mask] = spontaneous_mp
         Out_fire = check_fire(Out_mp)
+        # Out_fire_lower = check_fire_lower(Out_mp)
+        # Out_fires[t] = Out_fire_lower
         # Out_fires[t] = Out_fire
         Out_fires[t] = Out_mp
 
@@ -566,7 +601,7 @@ def calculation_function(params):
         I_states = update_states(I_mp, I_states)
         I_es, I_g_decays, I_g_rises, I_gPs = update_gPs(I_es, I_ws, I_g_decays, I_g_rises, [E_fire, I_fire], 0)
 
-  
+
         Out_states = update_states(Out_mp, Out_states)
         Out_es, Out_g_decays, Out_g_rises, Out_gPs = update_gPs(Out_es, Out_ws, Out_g_decays, Out_g_rises, [E_fire], 0)
 
@@ -608,24 +643,13 @@ def calculation_function(params):
 
         # voltages.append(E_mp[10,10].cpu()-70)
 
-    # # try just sum up the activities
-    # size = 4
-    # sum_E_fires = torch.zeros((4000,5,5))
-    # for i in range(5):
-    #     for j in range(5):
-    #         sub_array = E_fires[:, i*size:i*size+size, j*size:j*size+size]
-    #         temp_sum = sub_array.sum(dim=(1,2))
-    #         sum_E_fires[:,i,j] = temp_sum
-
-    # data = {
-    #     'In_fires': In_fires*100,
-    #     # 'In_fires': In_fires,
-    #     'E_fires': E_fires,
-    #     'I_fires': I_fires,
-    #     'Out_fires': Out_fires
-        
-    #     # 'Out_fires': sum_E_fires/18
-    # }
+    data = {
+        # 'In_fires': In_fires*100,
+        'In_fires': In_fires,
+        'E_fires': E_fires,
+        'I_fires': I_fires,
+        'Out_fires': Out_fires
+    }
 
     # skip showing the silence part between 600 - 1500
     # data = {
@@ -635,13 +659,13 @@ def calculation_function(params):
     #     'Out_fires': torch.cat([Out_fires[:600], Out_fires[1501:2500], Out_fires[3200:]], dim=0)
     # }
 
-    data = {
-        'In_fires': In_fires[500:]*100,
-        # 'In_fires': In_fires,
-        'E_fires': E_fires[500:],
-        'I_fires': I_fires[500:],
-        'Out_fires': Out_fires[500:]
-    }
+    # data = {
+    #     'In_fires': In_fires[1600:]*100,
+    #     # 'In_fires': In_fires,
+    #     'E_fires': E_fires[1600:],
+    #     'I_fires': I_fires[1600:],
+    #     'Out_fires': Out_fires[1600:]
+    # }
 
     if train:
         after_E_ws = []
@@ -659,5 +683,73 @@ def calculation_function(params):
 
         with open(path + 'Spiking_NN/datasets/SNN_states/' + train_file, 'wb') as f:
             pickle.dump(states, f)
-    
-    return data
+
+    if not oopse:
+        # analyse E_fires and get activation blobs
+        E_fires = E_fires.cpu()
+        sum = E_fires.sum(dim=(1,2))
+
+        #----------------------------get avalanches---------------------------------
+        def avalanches(fires):
+            # Label connected components (blobs)
+            labeled_array, num_features = label(fires, structure=np.ones((3,3)))
+
+            # Compute size of each blob (avalanche size)
+            blob_sizes = []
+            for i in range(1, num_features+1):
+                size = np.sum(labeled_array == i)
+                blob_sizes.append(size)
+
+
+            blob_sizes = np.array(blob_sizes)
+            labeled_array = np.array(labeled_array)
+            return blob_sizes, labeled_array
+            # print("Avalanche sizes (number of ones per blob):", blob_sizes)
+
+        # per time
+        total_sizes = []
+        labels = []
+        for i in range(E_fires[500:].shape[0]):
+            blob_sizes, temp_label= avalanches(E_fires[i])
+
+            # limit sizes
+            # blob_sizes = blob_sizes[blob_sizes>10]
+            blob_sizes = blob_sizes[blob_sizes<10]
+
+            total_sizes.append(blob_sizes)
+            labels.append(temp_label)
+
+
+        #-------------------------functions--------------------------
+        def smoothing(arr, window_size):
+            temp = np.convolve(arr, np.ones(window_size)/window_size, mode='same')
+            return temp
+
+        def find_last_zero(arr):
+            temp = 0
+            for i in range(len(arr)):
+                if arr[i] == 0:
+                    temp = i
+            return temp
+
+        def find_first_peak(arr):
+            last = 0
+            for i in range(len(arr)):
+                if arr[i] < last:
+                    return i
+                else:
+                    last = arr[i]
+
+        smoothed = smoothing(sum, 10)
+        num_last_zero = find_last_zero(smoothed)
+        num_first_peak = find_first_peak(smoothed[num_last_zero:])
+
+        map = labels[num_last_zero+num_first_peak]
+        labels_array.append(map)
+
+        if idx % 10 == 0:
+            with open(path + "Spiking_add_files/validate_maps.pkl", "wb") as f:
+                pickle.dump(labels_array, f)
+
+with open(path + "Spiking_add_files/validate_maps.pkl", "wb") as f:
+    pickle.dump(labels_array, f)
