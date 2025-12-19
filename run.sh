@@ -1,5 +1,6 @@
-#! /bin/bash
+#!/usr/bin/env bash
 
-source /home/yaning/Documents/python_env/new/bin/activate
-export CUDA_VISIBLE_DEVICES=0
-python3 /home/yaning/Documents/Spiking_NN/with_learning/MCMC_run.py
+source /opt/miniforge/etc/profile.d/conda.sh
+conda activate spike
+export CUDA_VISIBLE_DEVICES=1
+python3 -u /home/yaning/Documents/Spiking_NN/mnst_learn/pipeline_validation.py

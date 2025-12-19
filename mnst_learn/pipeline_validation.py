@@ -9,11 +9,9 @@ Created on Thu Dec 18
 import pickle
 import torch
 import math
-import matplotlib.pyplot as plt
-import seaborn as sns
-import pandas as pd
 import numpy as np
 from scipy.ndimage import label
+from scipy.signal import savgol_filter, find_peaks
 
 class Params:
     def __init__(self):
@@ -106,18 +104,18 @@ for idx in range(fire_data.shape[0]):
     # guesses
     u_se = torch.tensor([params.u_se_ampa, params.u_se_nmda, params.u_se_gaba], device=device)
     tau_rec = torch.tensor([params.tau_rec_ampa, params.tau_rec_nmda, params.tau_rec_gaba], device=device)
-    tau_rec = tau_rec
+
 
     # below from paper 
     tau_pre = torch.tensor([20, 20, 20], device=device)
     tau_pre = tau_pre
     tau_decay = torch.tensor([2.4, 100, 7], device=device)
-    tau_decay = tau_decay
+
 
     # rise has to be quicker than decay, tau needs to be bigger (negative deri)
     # tau_rise = torch.tensor([1, 50, 3], device=device)
     tau_rise = torch.tensor([params.tau_rise_ampa, params.tau_rise_nmda, params.tau_rise_gaba], device=device)
-    tau_rise = tau_rise
+
     # guesses
     # learning_rate = 100
     # weight_scale = 10
@@ -684,10 +682,10 @@ for idx in range(fire_data.shape[0]):
         with open(path + 'Spiking_NN/datasets/SNN_states/' + train_file, 'wb') as f:
             pickle.dump(states, f)
 
+    #-----------------analyse E_fires and get activation blobs----------------------
     if not oopse:
-        # analyse E_fires and get activation blobs
         E_fires = E_fires.cpu()
-        sum = E_fires.sum(dim=(1,2))
+        sum_E = E_fires.sum(dim=(1,2))
 
         #----------------------------get avalanches---------------------------------
         def avalanches(fires):
@@ -709,47 +707,69 @@ for idx in range(fire_data.shape[0]):
         # per time
         total_sizes = []
         labels = []
-        for i in range(E_fires[500:].shape[0]):
+        for i in range(E_fires.shape[0]):
             blob_sizes, temp_label= avalanches(E_fires[i])
 
             # limit sizes
             # blob_sizes = blob_sizes[blob_sizes>10]
-            blob_sizes = blob_sizes[blob_sizes<10]
+            # blob_sizes = blob_sizes[blob_sizes<10]
 
             total_sizes.append(blob_sizes)
             labels.append(temp_label)
 
 
-        #-------------------------functions--------------------------
-        def smoothing(arr, window_size):
-            temp = np.convolve(arr, np.ones(window_size)/window_size, mode='same')
-            return temp
+        #-------------------------old methods--------------------------
+        # def smoothing(arr, window_size):
+        #     temp = np.convolve(arr, np.ones(window_size)/window_size, mode='same')
+        #     return temp
 
-        def find_last_zero(arr):
-            temp = 0
-            for i in range(len(arr)):
-                if arr[i] == 0:
-                    temp = i
-            return temp
+        # def find_last_zero(arr):
+        #     temp = 0
+        #     for i in range(len(arr)):
+        #         if arr[i] == 0:
+        #             temp = i
+        #     return temp
 
-        def find_first_peak(arr):
-            last = 0
-            for i in range(len(arr)):
-                if arr[i] < last:
-                    return i
-                else:
-                    last = arr[i]
+        # def find_first_peak(arr):
+        #     last = 0
+        #     for i in range(len(arr)):
+        #         if arr[i] < last:
+        #             return i
+        #         else:
+        #             last = arr[i]
 
-        smoothed = smoothing(sum, 10)
-        num_last_zero = find_last_zero(smoothed)
-        num_first_peak = find_first_peak(smoothed[num_last_zero:])
+        # smoothed = smoothing(sum_E, 10)
+        # num_last_zero = find_last_zero(smoothed)
+        # num_first_peak = find_first_peak(smoothed[num_last_zero:])
 
-        map = labels[num_last_zero+num_first_peak]
+        #------------------new method----------------------------
+        length_sizes = []
+        for i in total_sizes:
+            length_sizes.append(i.shape[0])
+        
+        ratio = sum_E[:3000]/(torch.tensor(length_sizes[:3000])+1e-8)
+
+
+
+        smooth_ratio = savgol_filter(ratio[500:], window_length=101, polyorder=3)
+
+        peaks, properties = find_peaks(
+            smooth_ratio,
+            prominence=5,   
+            distance=300
+        )
+
+        first_peak_index = peaks[0]
+
+        map = labels[first_peak_index + 500]
         labels_array.append(map)
 
         if idx % 10 == 0:
-            with open(path + "Spiking_add_files/validate_maps.pkl", "wb") as f:
+            with open(path + "Spiking_add_files/validate_maps_0_9_new_peak.pkl", "wb") as f:
                 pickle.dump(labels_array, f)
+    else:
+        print(idx)
 
-with open(path + "Spiking_add_files/validate_maps.pkl", "wb") as f:
+
+with open(path + "Spiking_add_files/validate_maps_0_9_new_peak.pkl", "wb") as f:
     pickle.dump(labels_array, f)

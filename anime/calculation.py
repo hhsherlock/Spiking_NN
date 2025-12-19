@@ -19,12 +19,12 @@ def calculation_function(params):
     # with open(path + "fire_data_10p_8f_non_zero_background.pkl", "rb") as f:
     # with open(path + "Spiking_add_files/fire_data_mnst_all_hunni_200-300.pkl", "rb") as f:
     # with open(path + "fire_data_gabor_binary_rotate_mix_diff.pkl", "rb") as f:
-    with open(path + "Spiking_add_files/fire_data_mnst_two.pkl", "rb") as f:
+    with open(path + "Spiking_add_files/fire_data_mnst_nine_another.pkl", "rb") as f:
         fire_data = pickle.load(f)
     
     larger_E = False
     train = False
-    train_file = "train_multi_E20_zipper.pkl"
+    train_file = "nines_zeros_sevens_E20_zipper.pkl"
 
     fire_data = torch.tensor(fire_data, device=device).float()
     # fire_data = fire_data[8,...,:4000]
