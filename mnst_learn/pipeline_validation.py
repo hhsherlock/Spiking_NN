@@ -48,7 +48,7 @@ with open(path + "Spiking_add_files/fire_data_mnst_all_hunni.pkl", "rb") as f:
 
 train = False
 keep_learning = False
-train_file = "train_multi_E20_zipper.pkl"
+train_file = "nines_zeros_sevens_E20_zipper.pkl"
 
 fire_data = torch.tensor(fire_data, device=device).float()
 # fire_data = fire_data[5]
@@ -718,17 +718,18 @@ for idx in range(fire_data.shape[0]):
             labels.append(temp_label)
 
 
-        #-------------------------old methods--------------------------
+        # -------------------------old methods--------------------------
+
         # def smoothing(arr, window_size):
         #     temp = np.convolve(arr, np.ones(window_size)/window_size, mode='same')
         #     return temp
 
-        # def find_last_zero(arr):
-        #     temp = 0
-        #     for i in range(len(arr)):
-        #         if arr[i] == 0:
-        #             temp = i
-        #     return temp
+        def find_last_zero(arr):
+            temp = 0
+            for i in range(len(arr)):
+                if arr[i] == 0:
+                    temp = i
+            return temp
 
         # def find_first_peak(arr):
         #     last = 0
@@ -738,38 +739,63 @@ for idx in range(fire_data.shape[0]):
         #         else:
         #             last = arr[i]
 
+        num_last_zero = find_last_zero(sum_E)
         # smoothed = smoothing(sum_E, 10)
-        # num_last_zero = find_last_zero(smoothed)
+        smoothed = savgol_filter(sum_E, window_length=101, polyorder=3)
+
         # num_first_peak = find_first_peak(smoothed[num_last_zero:])
-
-        #------------------new method----------------------------
-        length_sizes = []
-        for i in total_sizes:
-            length_sizes.append(i.shape[0])
-        
-        ratio = sum_E[:3000]/(torch.tensor(length_sizes[:3000])+1e-8)
-
-
-
-        smooth_ratio = savgol_filter(ratio[500:], window_length=101, polyorder=3)
-
         peaks, properties = find_peaks(
-            smooth_ratio,
+            smoothed[num_last_zero:],
             prominence=5,   
             distance=300
         )
+        if len(peaks) != 0:
+            first_peak_index = peaks[0] + num_last_zero
+        else:
+            first_peak_index = 0
+        
+        save_dict = {
+            "sum_E": sum_E,
+            "first_peak_index": first_peak_index,
+            "map": labels[first_peak_index]
+        }
 
-        first_peak_index = peaks[0]
+        # #------------------new method----------------------------
+        # length_sizes = []
+        # for i in total_sizes:
+        #     length_sizes.append(i.shape[0])
+        
+        # ratio = sum_E[:3000]/(torch.tensor(length_sizes[:3000])+1e-8)
 
-        map = labels[first_peak_index + 500]
-        labels_array.append(map)
+        # smooth_ratio = savgol_filter(ratio[500:], window_length=101, polyorder=3)
+
+        # peaks, properties = find_peaks(
+        #     smooth_ratio,
+        #     prominence=5,   
+        #     distance=300
+        # )
+        # if len(peaks) != 0:
+        #     first_peak_index = peaks[0]
+        # else:
+        #     first_peak_index = 0
+        
+        # save_dict = {
+        #     "sum_E": sum_E,
+        #     "length_sizes": length_sizes,
+        #     "ratio": ratio,
+        #     "first_peak_index": first_peak_index
+        # }
+
+        # map = labels[first_peak_index + 500]
+        # labels_array.append(map)
+        labels_array.append(save_dict)
 
         if idx % 10 == 0:
-            with open(path + "Spiking_add_files/validate_maps_0_9_new_peak.pkl", "wb") as f:
+            with open(path + "Spiking_add_files/validation_0_7_9.pkl", "wb") as f:
                 pickle.dump(labels_array, f)
     else:
         print(idx)
 
 
-with open(path + "Spiking_add_files/validate_maps_0_9_new_peak.pkl", "wb") as f:
+with open(path + "Spiking_add_files/validation_0_7_9.pkl", "wb") as f:
     pickle.dump(labels_array, f)

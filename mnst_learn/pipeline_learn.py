@@ -56,11 +56,11 @@ with open(path + "Spiking_add_files/fire_data_nines_zeros_sevens_zipper.pkl", "r
 
 train = True
 keep_learning = True
-larger_E = False 
+larger_E = True
 
 fire_data = torch.tensor(fire_data, device=device).float()
 
-train_file = "nines_zeros_sevens_E20_zipper.pkl"
+train_file = "learned_0_7_9_E40_zipper.pkl"
 
 
 # EEG = []
@@ -494,13 +494,13 @@ for pic_index in range(fire_data.shape[0]):
                                                                                             [E_con_Out, True, weight_scale])
     # Out_ws = normalise_weight(Out_ws)
 
-    # ------------------set to a good learning state-----------------------------------------
-    if train and pic_index == 0:
-        with open(path + "/Spiking_NN/datasets/SNN_states/pretty_good_states.pkl", "rb") as f:
-            test_states = pickle.load(f)
+    # # ------------------set to a good learning state-----------------------------------------
+    # if train and pic_index == 0:
+    #     with open(path + "/Spiking_NN/datasets/SNN_states/pretty_good_states.pkl", "rb") as f:
+    #         test_states = pickle.load(f)
         
-        # I_ws = test_states["initial_I_ws"]
-        E_ws = test_states["initial_E_ws"]
+    #     # I_ws = test_states["initial_I_ws"]
+    #     E_ws = test_states["initial_E_ws"]
 
     #-------------------keep learning----------------------------------------------------------
     if keep_learning and pic_index != 0:
