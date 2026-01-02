@@ -49,18 +49,18 @@ path = "/home/yaning/Documents/"
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # with open(path + "fire_data_10p_8f_non_zero_background.pkl", "rb") as f:
-with open(path + "Spiking_add_files/fire_data_nines_zeros_sevens_zipper.pkl", "rb") as f:
+with open(path + "Spiking_add_files/fire_data_5_freq.pkl", "rb") as f:
 # with open(path + "fire_data_gabor_binary_rotate_mix_diff.pkl", "rb") as f:
 # with open(path + "fire_data_gabor_binary_two.pkl", "rb") as f:
     fire_data = pickle.load(f)
 
 train = True
 keep_learning = True
-larger_E = True
+larger_E = False
 
 fire_data = torch.tensor(fire_data, device=device).float()
 
-train_file = "learned_0_7_9_E40_zipper.pkl"
+train_file = "learned_5_freq.pkl"
 
 
 # EEG = []
