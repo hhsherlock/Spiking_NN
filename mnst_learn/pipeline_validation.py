@@ -43,12 +43,12 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 # with open(path + "fire_data_mnst_two.pkl", "rb") as f:
-with open(path + "Spiking_add_files/fire_data_test_0_3_9.pkl", "rb") as f:
+with open(path + "Spiking_add_files/fire_data_test_not_9.pkl", "rb") as f:
     fire_data = pickle.load(f)
 
 train = False
 keep_learning = False
-train_file = "learned_0_3_9_freq.pkl"
+train_file = "learned_9_100.pkl"
 
 fire_data = torch.tensor(fire_data, device=device).float()
 # fire_data = fire_data[5]
@@ -790,12 +790,12 @@ for idx in range(fire_data.shape[0]):
         # labels_array.append(map)
         labels_array.append(save_dict)
 
-        if idx % 10 == 0:
-            with open(path + "Spiking_add_files/validation_0_3_9.pkl", "wb") as f:
-                pickle.dump(labels_array, f)
+        # if idx % 10 == 0:
+        #     with open(path + "Spiking_add_files/validation_not_9_500.pkl", "wb") as f:
+        #         pickle.dump(labels_array, f)
     else:
         print(idx)
 
 
-with open(path + "Spiking_add_files/validation_0_3_9.pkl", "wb") as f:
+with open(path + "Spiking_add_files/validation_not_9_100.pkl", "wb") as f:
     pickle.dump(labels_array, f)

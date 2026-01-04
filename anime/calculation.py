@@ -617,15 +617,15 @@ def calculation_function(params):
     #         temp_sum = sub_array.sum(dim=(1,2))
     #         sum_E_fires[:,i,j] = temp_sum
 
-    # data = {
-    #     'In_fires': In_fires*100,
-    #     # 'In_fires': In_fires,
-    #     'E_fires': E_fires,
-    #     'I_fires': I_fires,
-    #     'Out_fires': Out_fires
+    data = {
+        'In_fires': In_fires*100,
+        # 'In_fires': In_fires,
+        'E_fires': E_fires,
+        'I_fires': I_fires,
+        'Out_fires': Out_fires
         
-    #     # 'Out_fires': sum_E_fires/18
-    # }
+        # 'Out_fires': sum_E_fires/18
+    }
 
     # skip showing the silence part between 600 - 1500
     # data = {
@@ -635,13 +635,13 @@ def calculation_function(params):
     #     'Out_fires': torch.cat([Out_fires[:600], Out_fires[1501:2500], Out_fires[3200:]], dim=0)
     # }
 
-    data = {
-        'In_fires': In_fires[500:]*100,
-        # 'In_fires': In_fires,
-        'E_fires': E_fires[500:],
-        'I_fires': I_fires[500:],
-        'Out_fires': Out_fires[500:]
-    }
+    # data = {
+    #     'In_fires': In_fires[500:]*100,
+    #     # 'In_fires': In_fires,
+    #     'E_fires': E_fires[500:],
+    #     'I_fires': I_fires[500:],
+    #     'Out_fires': Out_fires[500:]
+    # }
 
     if train:
         after_E_ws = []
